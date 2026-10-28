@@ -1,7 +1,14 @@
-# Light Show Studio
+# My Tesla
 
-Editor nel browser per creare light show personalizzati per auto Tesla.
-Online su **https://mytesla.fabrizioalampi.it**.
+App per auto Tesla che girano interamente nel browser, online su
+**https://mytesla.fabrizioalampi.it**. La pagina iniziale elenca le app; ognuna
+vive nella sua cartella ed è indipendente dalle altre.
+
+| App | Indirizzo |
+| --- | --- |
+| Light Show Studio | https://mytesla.fabrizioalampi.it/light-show/ |
+
+## Light Show Studio
 
 Carichi un brano, scegli quali luci e chiusure animare e il generatore costruisce
 la coreografia sui beat. Poi la ritocchi sulla timeline, controlli i limiti di
@@ -11,7 +18,7 @@ pronta per la chiavetta USB.
 Tutto gira nel browser: niente account, niente server, la musica non lascia il
 tuo computer.
 
-## Cosa fa
+### Cosa fa
 
 - Timeline con aggancio ai beat, registrazione live da tastiera, annulla/ripeti,
   copia/incolla e scorciatoie come in xLights.
@@ -24,7 +31,7 @@ tuo computer.
 - Export `.fseq` versione 2 non compresso più l'audio in WAV 44,1 kHz;
   salvataggio e apertura del progetto in JSON; import di show `.fseq` esistenti.
 
-## Sulla chiavetta
+### Sulla chiavetta
 
 1. Formatta la chiavetta in exFAT o FAT32.
 2. Estrai lo ZIP nella radice: deve esserci `LightShow/` con `.fseq` e `.wav`
@@ -35,15 +42,22 @@ tuo computer.
 
 ```
 public/
-  index.html     pagina dell'app
-  app.css        stili
-  core.js        mappa dei canali, rendering dei frame, lettura/scrittura .fseq,
-                 simulazione del veicolo, analisi dei beat, coreografia automatica
-  app.js         interfaccia: timeline, anteprima, pannelli, export
-  jszip.min.js   JSZip 3.10.1 (MIT o GPLv3), per creare lo ZIP
-  _headers       header di sicurezza (CSP) per Cloudflare
-wrangler.jsonc   Worker Cloudflare con soli file statici sul dominio mytesla.fabrizioalampi.it
+  index.html, home.css   pagina iniziale con le schede delle app
+  favicon.svg, 404.html
+  _headers               header di sicurezza: CSP stretta di base, una CSP per app
+  light-show/
+    index.html           pagina dell'app
+    app.css              stili
+    core.js              mappa dei canali, rendering dei frame, lettura/scrittura .fseq,
+                         simulazione del veicolo, analisi dei beat, coreografia automatica
+    app.js               interfaccia: timeline, anteprima, pannelli, export
+    jszip.min.js         JSZip 3.10.1 (MIT o GPLv3), per creare lo ZIP
+wrangler.jsonc           Worker Cloudflare con soli file statici su mytesla.fabrizioalampi.it
 ```
+
+Per aggiungere un'app: una cartella nuova in `public/`, una scheda in
+`public/index.html` e, se servono permessi in più, un blocco nel file `_headers`
+con `! Content-Security-Policy` seguito dalla CSP dell'app.
 
 ## Sviluppo e pubblicazione
 

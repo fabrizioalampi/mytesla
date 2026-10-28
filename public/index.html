@@ -3,101 +3,38 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Light Show Studio</title>
-<meta name="description" content="Crea light show per auto Tesla nel browser: timeline sulla musica, anteprima, coreografia automatica ed export pronto per la chiavetta USB.">
-<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<title>My Tesla, app nel browser</title>
+<meta name="description" content="Piccole app per auto Tesla che girano interamente nel browser: light show personalizzati, video della dashcam e altro. Niente account, niente upload.">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="/home.css">
 </head>
 <body>
-<div class="app">
-  <header class="top gut">
-    <a class="btn small" href="https://fabrizioalampi.it/" aria-label="Vai al sito di Fabrizio Alampi">← fabrizioalampi.it</a>
-    <div class="brand">
-      <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="8" fill="var(--accent)"/><path d="M7 13c3-3 7-4 10-3l-1 6c-3 0-6 0-9-3z" fill="var(--accent-fg)"/><path d="M19 11l7-2M19.5 14l7 0M19 17l7 2" stroke="var(--accent-fg)" stroke-width="2" stroke-linecap="round"/></svg>
-      <div><b>Light Show Studio</b><small>.fseq per Tesla · v2 uncompressed</small></div>
-    </div>
-    <input class="name" id="projName" aria-label="Nome dello show" maxlength="60">
-    <label class="btn" for="audioIn"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 12V3l7-1.5v9"/><circle cx="4" cy="12" r="2"/><circle cx="11" cy="10.5" r="2"/></svg>Carica musica</label>
-    <input type="file" id="audioIn" accept="audio/*,.mp3,.wav">
-    <details class="menu" id="projMenu">
-      <summary class="btn">Progetto</summary>
-      <div class="menu-pop" role="menu">
-        <button id="mSave" role="menuitem">Salva progetto (.json)</button>
-        <label for="projIn" style="all:unset;cursor:pointer;padding:8px 10px;border-radius:6px" class="mlabel">Apri progetto (.json)</label>
-        <label for="fseqIn" style="all:unset;cursor:pointer;padding:8px 10px;border-radius:6px" class="mlabel">Importa uno show .fseq</label>
-        <hr>
-        <button id="mNew" role="menuitem">Svuota la timeline</button>
-      </div>
-    </details>
-    <input type="file" id="projIn" accept=".json,application/json">
-    <input type="file" id="fseqIn" accept=".fseq">
-    <span class="spacer-f"></span>
-    <button class="btn primary" id="exportBtn"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 2v8M4.5 6.5 8 10l3.5-3.5M3 13h10"/></svg>Esporta per USB</button>
+<main class="wrap">
+  <header class="head">
+    <a class="back" href="https://fabrizioalampi.it/">← fabrizioalampi.it</a>
+    <p class="kicker">MY TESLA</p>
+    <h1>App per la tua Tesla, nel browser</h1>
+    <p class="lead">Strumenti nati per curiosità che girano interamente sul tuo dispositivo: niente installazioni, niente account, e i tuoi file non vengono caricati da nessuna parte.</p>
   </header>
-  <div class="banner gut" id="banner" hidden></div>
 
-  <div class="main">
-    <section class="upper gut">
-      <div class="stage" aria-label="Anteprima del veicolo">
-        <div class="stage-head">
-          <div class="clock" id="clock">0:00.00 <span>/ 0:00</span></div>
-          <span class="chip" id="bpmChip">-- BPM</span>
-          <span class="chip demo" id="demoChip" hidden>Brano demo</span>
-          <span class="chip" id="chChip">48 canali</span>
-        </div>
-        <div class="views">
-          <div class="view"><label>FRONTE</label><svg id="svgFront" viewBox="0 0 420 220" preserveAspectRatio="xMidYMid meet"></svg></div>
-          <div class="view"><label>RETRO</label><svg id="svgRear" viewBox="0 0 420 220" preserveAspectRatio="xMidYMid meet"></svg></div>
-        </div>
-        <div class="clos" id="closStrip"></div>
+  <section class="cards" aria-label="App disponibili">
+    <article class="card">
+      <div class="card-icon" aria-hidden="true">
+        <svg viewBox="0 0 32 32"><rect x="1" y="1" width="30" height="30" rx="8" fill="var(--accent)"/><path d="M7 13c3-3 7-4 10-3l-1 6c-3 0-6 0-9-3z" fill="var(--accent-fg)"/><path d="M19 11l7-2M19.5 14l7 0M19 17l7 2" stroke="var(--accent-fg)" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
       </div>
+      <p class="tag">LIGHT SHOW</p>
+      <h2>Light Show Studio</h2>
+      <p>Crea un light show partendo da un brano: scegli quali luci e chiusure animare, il generatore costruisce la coreografia sui beat, la ritocchi sulla timeline e scarichi lo ZIP pronto per la chiavetta USB.</p>
+      <a class="go" href="/light-show/">Apri Light Show Studio →</a>
+    </article>
+  </section>
 
-      <aside class="side">
-        <div class="tabs" role="tablist">
-          <button role="tab" data-tab="tools" aria-selected="true">Strumenti</button>
-          <button role="tab" data-tab="insp" aria-selected="false">Effetto</button>
-          <button role="tab" data-tab="gen" aria-selected="false">Genera</button>
-          <button role="tab" data-tab="check" aria-selected="false">Verifica<span class="dot" id="checkDot"></span></button>
-        </div>
-        <div class="pane" id="pane-tools">
-          <div class="sec"><h3>Luci</h3><div class="tools" data-cat="light"></div></div>
-          <div class="sec"><h3>Chiusure</h3><div class="tools" data-cat="closure"></div></div>
-          <div class="sec"><h3>Light bar Cybertruck</h3><div class="tools" data-cat="bar"></div></div>
-          <div class="sec"><h3>Interni RGB</h3><div class="tools" data-cat="rgb"></div></div>
-          <p class="hint">Trascina su una riga della timeline per disegnare un effetto con lo strumento scelto. Tasti come in xLights: <kbd>F</kbd> accendi, <kbd>E</kbd> <kbd>D</kbd> <kbd>C</kbd> accendi in 0,5/1/2 s, <kbd>W</kbd> <kbd>S</kbd> <kbd>X</kbd> spegni in 0,5/1/2 s, <kbd>Q</kbd> apri, <kbd>A</kbd> danza, <kbd>Z</kbd> chiudi. Con effetti selezionati, il tasto cambia il loro tipo.</p>
-        </div>
-        <div class="pane" id="pane-insp" hidden></div>
-        <div class="pane" id="pane-gen" hidden></div>
-        <div class="pane" id="pane-check" hidden></div>
-      </aside>
-    </section>
-
-    <section class="tl">
-      <div class="tl-bar gut">
-        <button class="btn small" id="playBtn" aria-label="Riproduci"><svg viewBox="0 0 16 16" fill="currentColor" id="playIco"><path d="M4 2.5v11l9-5.5z"/></svg></button>
-        <button class="btn small" id="homeBtn" aria-label="Torna all'inizio"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 3h2v10H3zM14 3v10L6 8z"/></svg></button>
-        <span class="time" id="tlTime">0:00.00</span>
-        <span class="sep"></span>
-        <button class="btn small" id="zoomOut" aria-label="Riduci zoom">−</button>
-        <button class="btn small" id="zoomIn" aria-label="Aumenta zoom">+</button>
-        <button class="btn small" id="zoomFit">Adatta</button>
-        <span class="sep"></span>
-        <button class="btn small on" id="snapBtn" aria-pressed="true">Aggancia al beat</button>
-        <button class="btn small on" id="followBtn" aria-pressed="true">Segui</button>
-        <button class="btn small rec" id="recBtn" aria-pressed="false"><span class="rd"></span>Registra live</button>
-        <button class="btn small" id="undoBtn" aria-label="Annulla">↶</button>
-        <button class="btn small" id="redoBtn" aria-label="Ripeti">↷</button>
-        <span class="help" id="tlHelp">Spazio: play · Canc: elimina · Ctrl+C/V/D: copia, incolla, duplica · Ctrl+rotella: zoom</span>
-      </div>
-      <div class="scroller" id="scroller"><div class="spacer" id="spacer"><canvas id="cv"></canvas></div></div>
-    </section>
-  </div>
-</div>
-<div class="toast" id="toast" role="status" hidden></div>
-<script src="jszip.min.js"></script>
-<script src="core.js"></script>
-<script src="app.js"></script>
+  <footer class="foot">
+    <span>Non affiliato a Tesla, Inc.</span>
+    <a href="https://github.com/fabrizioalampi/mytesla">Codice su GitHub</a>
+  </footer>
+</main>
 </body>
 </html>
