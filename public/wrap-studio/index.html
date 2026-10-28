@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wrap Studio</title>
+<meta name="description" content="Crea in un minuto una wrap personalizzata per il Paint Shop della tua Tesla: scegli l'auto, uno stile e i colori, poi salva il PNG pronto per la chiavetta USB o l'app Tesla.">
+<link rel="icon" type="image/svg+xml" href="/wrap-studio/icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&family=Bebas+Neue&family=Permanent+Marker&family=Racing+Sans+One&display=swap">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="top">
+  <a class="back" href="/" aria-label="Torna a tutte le app">← App</a>
+  <div class="brand"><img src="icon.svg" alt="" width="34" height="34"><b>Wrap Studio</b></div>
+  <span class="grow"></span>
+  <button class="icon-btn" id="undoBtn" type="button" aria-label="Annulla" title="Annulla (Ctrl+Z)" disabled>↶</button>
+  <button class="icon-btn" id="redoBtn" type="button" aria-label="Ripeti" title="Ripeti (Ctrl+Maiusc+Z)" disabled>↷</button>
+</header>
+
+<main class="layout">
+  <section class="stage" aria-label="Anteprima">
+    <div class="canvas-box" id="canvasBox">
+      <canvas id="preview" width="640" height="640" aria-label="Anteprima della wrap sulla carrozzeria srotolata"></canvas>
+      <div class="loading" id="loading" hidden><span class="spinner" aria-hidden="true"></span><span id="loadingText">Scarico il template da Tesla…</span></div>
+    </div>
+    <p class="caption" id="caption">Stai guardando la carrozzeria "srotolata" vista dall'alto: ogni forma bianca è un pannello dell'auto. Fuori dai pannelli il file resta trasparente.</p>
+    <div class="quick">
+      <button class="btn" id="variantBtn" type="button">🎲 Variante</button>
+      <button class="btn" id="surpriseBtn" type="button">✨ Sorprendimi</button>
+      <label class="switch"><input type="checkbox" id="outlineChk" checked><span>Mostra contorni</span></label>
+      <button class="btn primary" id="dlQuick" type="button">⬇ Scarica PNG</button>
+    </div>
+  </section>
+
+  <section class="steps" aria-label="Crea la tua wrap">
+    <div class="step">
+      <h2><span class="num">1</span>La tua auto</h2>
+      <button class="car-current" id="carBtn" type="button" aria-haspopup="dialog">
+        <img id="carThumb" alt="" width="64" height="64">
+        <span class="car-txt"><b id="carName">Model Y</b><small id="carSub"></small></span>
+        <span class="change">Cambia</span>
+      </button>
+    </div>
+
+    <div class="step">
+      <h2><span class="num">2</span>Uno stile</h2>
+      <div class="style-grid" id="styleGrid" role="list"></div>
+    </div>
+
+    <div class="step">
+      <h2><span class="num">3</span>I colori</h2>
+      <div class="palettes" id="palettes" role="list"></div>
+      <details class="mini" id="customColors">
+        <summary>Scegli tu i colori</summary>
+        <div class="pickers" id="pickers"></div>
+      </details>
+      <div class="sliders" id="sliders"></div>
+    </div>
+
+    <details class="perso" id="perso">
+      <summary>Personalizza <small>testo, logo, disegno a mano</small></summary>
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" data-tab="text" aria-selected="true">Testo</button>
+        <button type="button" role="tab" data-tab="logo" aria-selected="false">Immagine</button>
+        <button type="button" role="tab" data-tab="draw" aria-selected="false">Disegno</button>
+      </div>
+      <div class="tab-pane" id="pane-text">
+        <label class="field"><span>Testo o numero di gara</span><input id="txtValue" type="text" maxlength="24" placeholder="Per esempio 77 o il tuo nome"></label>
+        <div class="row2">
+          <label class="field"><span>Carattere</span><select id="txtFont"><option value="Bebas Neue">Sportivo</option><option value="Racing Sans One">Corsa</option><option value="Permanent Marker">Pennarello</option><option value="Fredoka">Tondo</option></select></label>
+          <label class="field"><span>Colore</span><input id="txtColor" type="color" value="#ffffff"></label>
+        </div>
+        <div class="row2">
+          <label class="check"><input id="txtStroke" type="checkbox" checked><span>Contorno</span></label>
+          <label class="field"><span>Colore del contorno</span><input id="txtStrokeColor" type="color" value="#111111"></label>
+        </div>
+        <label class="field"><span>Dimensione <output id="txtSizeOut"></output></span><input id="txtSize" type="range" min="30" max="400" step="2" value="140"></label>
+        <label class="field"><span>Rotazione <output id="txtRotOut"></output></span><input id="txtRot" type="range" min="-180" max="180" step="1" value="0"></label>
+        <p class="hint">Trascina il testo sull'anteprima per spostarlo.</p>
+        <button class="btn small" id="txtRemove" type="button">Togli il testo</button>
+      </div>
+      <div class="tab-pane" id="pane-logo" hidden>
+        <label class="btn file-btn"><input id="logoIn" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml">Carica un'immagine o un logo</label>
+        <p class="hint">L'immagine resta nel tuo browser, non viene caricata da nessuna parte.</p>
+        <div id="logoCtrls" hidden>
+          <label class="field"><span>Dimensione <output id="logoSizeOut"></output></span><input id="logoSize" type="range" min="40" max="1024" step="4" value="300"></label>
+          <label class="field"><span>Opacità <output id="logoOpOut"></output></span><input id="logoOp" type="range" min="10" max="100" step="5" value="100"></label>
+          <label class="check"><input id="logoRepeat" type="checkbox"><span>Ripeti come motivo</span></label>
+          <p class="hint">Trascina l'immagine sull'anteprima per spostarla.</p>
+          <button class="btn small" id="logoRemove" type="button">Togli l'immagine</button>
+        </div>
+      </div>
+      <div class="tab-pane" id="pane-draw" hidden>
+        <div class="seg" role="group" aria-label="Strumento">
+          <button type="button" class="seg-btn" data-tool="brush" aria-pressed="false">🖌️ Pennello</button>
+          <button type="button" class="seg-btn" data-tool="eraser" aria-pressed="false">🧽 Gomma</button>
+          <button type="button" class="seg-btn" data-tool="move" aria-pressed="true">✋ Sposta</button>
+        </div>
+        <div class="row2">
+          <label class="field"><span>Colore</span><input id="brushColor" type="color" value="#ff2bd6"></label>
+          <label class="field"><span>Spessore <output id="brushSizeOut"></output></span><input id="brushSize" type="range" min="4" max="120" step="2" value="24"></label>
+        </div>
+        <p class="hint">La gomma cancella solo quello che hai disegnato a mano.</p>
+        <button class="btn small" id="drawClear" type="button">Cancella il disegno</button>
+      </div>
+    </details>
+  </section>
+
+  <section class="save" aria-label="Salva">
+    <h2>Salva</h2>
+    <label class="field"><span>Nome del file</span><input id="nameIn" type="text" maxlength="40" autocomplete="off" spellcheck="false"></label>
+    <p class="hint" id="nameHint"></p>
+    <div class="weight" id="weight"><div class="meter"><b id="weightBar"></b></div><span id="weightTxt">Calcolo il peso…</span></div>
+    <p class="hint warn" id="fitMsg" hidden></p>
+    <label class="check"><input id="exportOutline" type="checkbox"><span>Includi i contorni dei pannelli nel file<small>Di solito no: in auto i contorni non servono.</small></span></label>
+    <div class="save-btns">
+      <button class="btn primary big" id="dlBtn" type="button">⬇ Scarica PNG</button>
+      <button class="btn big" id="addBtn" type="button">＋ Aggiungi alla raccolta</button>
+    </div>
+    <div class="collection" id="collection" hidden>
+      <h3>La tua raccolta <small id="colCount"></small></h3>
+      <ul class="col-list" id="colList"></ul>
+      <button class="btn primary" id="zipBtn" type="button">Scarica tutte (ZIP con la cartella Wraps)</button>
+    </div>
+  </section>
+</main>
+
+<section class="guide" aria-labelledby="guideTitle">
+  <h2 id="guideTitle">Come metterla sull'auto</h2>
+  <div class="guide-grid">
+    <div>
+      <h3>Con la chiavetta USB</h3>
+      <ol>
+        <li>Formatta la chiavetta in exFAT, FAT32 (Windows), MS-DOS FAT (Mac), ext3 o ext4. NTFS non funziona.</li>
+        <li>Crea nella radice una cartella <code>Wraps</code> e mettici i PNG (fino a 10). Lo ZIP della raccolta contiene già la cartella.</li>
+        <li>Togli dalla chiavetta eventuali aggiornamenti di mappe o software.</li>
+        <li>Inseriscila nell'auto e apri <b>Toybox, Paint Shop</b>, scheda <b>Wraps</b>.</li>
+      </ol>
+    </div>
+    <div>
+      <h3>Con l'app Tesla</h3>
+      <ol>
+        <li>Serve l'app 4.59.0 o successiva.</li>
+        <li>Apri <b>Creazioni, Wrap, Carica</b> e scegli il PNG (fino a 10).</li>
+        <li>In auto la trovi in <b>Toybox, Paint Shop</b>, scheda <b>Wraps</b>.</li>
+      </ol>
+    </div>
+    <div>
+      <h3>Requisiti del file</h3>
+      <ul>
+        <li>PNG da 512x512 a 1024x1024 pixel (Cybertruck 1024x768).</li>
+        <li>Al massimo 1 MB.</li>
+        <li>Nome con lettere, numeri, trattini, underscore e spazi, al massimo 30 caratteri.</li>
+      </ul>
+      <p class="hint">Wrap Studio controlla tutto questo da solo. I template sono quelli ufficiali del <a id="repoLink" href="https://github.com/teslamotors/custom-wraps" target="_blank" rel="noopener noreferrer">repository Tesla su GitHub</a>, che il tuo browser scarica direttamente da lì. Non affiliato a Tesla, Inc.</p>
+    </div>
+  </div>
+</section>
+
+<dialog class="car-dialog" id="carDialog" aria-labelledby="carDlgTitle">
+  <div class="dlg-head"><h2 id="carDlgTitle">Scegli la tua auto</h2><button class="icon-btn" id="carClose" type="button" aria-label="Chiudi">✕</button></div>
+  <p class="hint">Non sai quale versione hai? Guarda l'anno sul libretto, oppure in auto tocca il logo T in alto sullo schermo: compaiono modello e versione. La Model Y dal 2025 è il restyling, con la barra luminosa che attraversa il frontale.</p>
+  <div class="car-grid" id="carGrid"></div>
+</dialog>
+
+<div class="toast" id="toast" role="status" hidden></div>
+<script src="jszip.min.js"></script>
+<script src="styles.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

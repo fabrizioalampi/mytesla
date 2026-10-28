@@ -7,6 +7,7 @@ vive nella sua cartella ed è indipendente dalle altre.
 | App | Indirizzo |
 | --- | --- |
 | Light Show Studio | https://mytesla.fabrizioalampi.it/light-show/ |
+| Wrap Studio | https://mytesla.fabrizioalampi.it/wrap-studio/ |
 
 ## Light Show Studio
 
@@ -38,6 +39,21 @@ tuo computer.
    dallo stesso nome.
 3. Sull'auto: Toybox, Light Show, Programma show.
 
+## Wrap Studio
+
+Crea in un minuto una wrap per il Paint Shop: scegli l'auto, uno stile
+(tinta unita, sfumatura, strisce racing, mimetiche, righe, pois, carbonio,
+scacchi, maculato, esagoni, pixel art), i colori, e salva il PNG. Testo, logo e
+disegno a mano sono nel pannello **Personalizza**. Il PNG è ritagliato sulla
+forma dei pannelli, pesa meno di 1 MB (se serve la risoluzione scende da sola,
+mai sotto i 512 pixel) e ha un nome valido per Tesla. La raccolta tiene fino a
+10 wrap e le scarica in uno ZIP con la cartella `Wraps/`.
+
+I template sono quelli ufficiali di [teslamotors/custom-wraps](https://github.com/teslamotors/custom-wraps).
+Il repository non ha una licenza, quindi qui non vengono copiati: li scarica il
+browser direttamente da `raw.githubusercontent.com`, da un commit fissato in
+`public/wrap-studio/styles.js`, e li tiene in cache in IndexedDB.
+
 ## Struttura
 
 ```
@@ -52,6 +68,11 @@ public/
                          simulazione del veicolo, analisi dei beat, coreografia automatica
     app.js               interfaccia: timeline, anteprima, pannelli, export
     jszip.min.js         JSZip 3.10.1 (MIT o GPLv3), per creare lo ZIP
+  wrap-studio/
+    index.html, app.css  pagina e stili
+    styles.js            modelli, tavolozze, stili generati via codice, regole sul nome
+    app.js               anteprima, export PNG sotto 1 MB, raccolta e ZIP, testo, logo, pennello
+    jszip.min.js         copia di JSZip per lo ZIP della raccolta
 wrangler.jsonc           Worker Cloudflare con soli file statici su mytesla.fabrizioalampi.it
 ```
 
