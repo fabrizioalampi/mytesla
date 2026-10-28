@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "tesla-light-show-studio",
+  "compatibility_date": "2026-10-01",
+
+  // Solo file statici: niente codice lato server.
+  "assets": {
+    "directory": "./public",
+    "not_found_handling": "404-page"
+  },
+
+  "routes": [
+    { "pattern": "mytesla.fabrizioalampi.it", "custom_domain": true }
+  ],
+  "workers_dev": false
+}
