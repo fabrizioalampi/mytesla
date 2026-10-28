@@ -1,10 +1,10 @@
 /* In viaggio: service worker. Tiene in cache solo i file di /in-viaggio/, così l'app
    funziona anche quando la connessione cade durante il viaggio. Nessuna richiesta esterna. */
 'use strict';
-const VERSION = 'in-viaggio-v1';
+const VERSION = 'in-viaggio-v2';
 const FILES = [
   './', 'index.html', 'app.css', 'app.js', 'giochi.js', 'suoni.js', 'diario.js',
-  'citta.js', 'italia.js', 'icone.js', 'quiz-domande.js', 'icon.svg', 'font/nunito-latin.woff2'
+  'citta.js', 'italia.js', 'icone.js', 'quiz-domande.js', 'qrcode.js', 'icon.svg', 'font/nunito-latin.woff2'
 ];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));

@@ -104,7 +104,10 @@ traguardi, tappe, +5/-5 minuti, pausa), **Giochi** a turno fino a 4 giocatori
 memory, tris con computer imbattibile), **Suoni** (19 effetti generati con Web
 Audio, con limitatore) e **Diario dei viaggi** (soste con posizione facoltativa,
 mappa dell'Italia disegnata nell'app, esporta e importa in JSON, dati solo
-nel browser). Funziona senza connessione grazie a un service worker limitato a
+nel browser, che non può scrivere sulla chiavetta USB dell'auto: un viaggio passa
+al telefono con un QR, senza server, o in tutte e due le direzioni con un codice di
+8 caratteri, `POST /api/viaggi/invia` e `GET /api/viaggi/ricevi`, salvato in KV per
+al massimo 24 ore e consegnato una volta sola). Funziona senza connessione grazie a un service worker limitato a
 `/in-viaggio/`. Niente lampeggi né suoni automatici: lo schermo dell'auto è
 nel campo visivo di chi guida. Fonti e licenze in `public/in-viaggio/CREDITI.md`.
 
@@ -135,7 +138,7 @@ public/
     calcoli.js           Web Worker: dati da /api/satelliti, posizioni, treni Starlink
     citta.js             capoluoghi di provincia con coordinate (nessun servizio esterno)
     satellite.min.js     satellite.js 7.1.0 impacchettato (licenza in satellite.js-LICENSE.md)
-src/index.ts             Worker per /api/satelliti/* (N2YO, cache, limiti)
+src/index.ts             Worker per /api/satelliti/* (N2YO, cache, limiti) e /api/viaggi/* (codici brevi, KV)
 wrangler.jsonc           Worker Cloudflare su mytesla.fabrizioalampi.it: file statici, codice solo per /api/*
 ```
 

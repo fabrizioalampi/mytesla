@@ -14,6 +14,12 @@
  * - limiti orari: N2YO dice in ogni risposta quante chiamate ha fatto la chiave nell'ultima ora;
  *   lo salviamo e ci fermiamo al 90% del limite, servendo l'ultima copia;
  * - dopo un errore di N2YO non si riprova per qualche minuto.
+ *
+ * In viaggio, codici brevi per spostare un viaggio tra auto e telefono:
+ *   POST /api/viaggi/invia            -> salva il viaggio (JSON, massimo 64 KB) e restituisce un codice
+ *   GET  /api/viaggi/ricevi?codice=.. -> consegna il viaggio una sola volta e lo cancella
+ * Il viaggio resta in KV al massimo 24 ore. Si accettano invii solo dal sito stesso, con un tetto
+ * di invii e di codici sbagliati per indirizzo IP e per ora.
  */
 
 interface Env {
@@ -21,6 +27,8 @@ interface Env {
   N2YO_API_KEY?: string;
   /* solo per i test in locale: indirizzo di un server finto al posto di N2YO */
   N2YO_BASE?: string;
+  /* codici brevi di In viaggio */
+  VIAGGI: KVNamespace;
 }
 
 const N2YO = "https://api.n2yo.com/rest/v1/satellite";
@@ -213,9 +221,104 @@ async function handle(url: URL, env: Env, ctx: ExecutionContext): Promise<Respon
   return fail(404, "Endpoint inesistente");
 }
 
+
+/* ================= In viaggio: codici brevi ================= */
+const CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";   // senza 0/O, 1/I/L
+const CODE_TTL_S = 24 * 3600;
+const MAX_TRIP_BYTES = 64 * 1024;
+const MAX_SENDS_PER_HOUR = 20, MAX_MISSES_PER_HOUR = 30;
+const noStore = { "Cache-Control": "no-store" };
+
+function newCode(): string {
+  const r = new Uint8Array(8);
+  crypto.getRandomValues(r);
+  let s = "";
+  for (const b of r) s += CODE_ALPHABET[b % CODE_ALPHABET.length];
+  return s;
+}
+const showCode = (c: string) => c.slice(0, 4) + "-" + c.slice(4);
+function cleanCode(v: string | null): string | null {
+  const c = String(v || "").toUpperCase().replace(/[\s-]/g, "");
+  return c.length === 8 && [...c].every((ch) => CODE_ALPHABET.includes(ch)) ? c : null;
+}
+/* contatori approssimati per IP nella Cache API (per data center): bastano come freno */
+async function ipKey(request: Request, what: string): Promise<Request> {
+  const ip = request.headers.get("CF-Connecting-IP") || "locale";
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("in-viaggio:" + ip));
+  const hex = [...new Uint8Array(digest)].slice(0, 12).map((b) => b.toString(16).padStart(2, "0")).join("");
+  return new Request(`https://mytesla.fabrizioalampi.it/__cache/viaggi/${what}/${hex}`);
+}
+async function bump(ctx: ExecutionContext, key: Request): Promise<number> {
+  const c = await cache().match(key);
+  const n = (c ? Number(await c.text()) || 0 : 0) + 1;
+  ctx.waitUntil(cache().put(key, new Response(String(n), { headers: { "Cache-Control": "public, max-age=3600" } })));
+  return n;
+}
+async function count(key: Request): Promise<number> { const c = await cache().match(key); return c ? Number(await c.text()) || 0 : 0; }
+
+/* tiene solo i campi del diario, con tipi e lunghezze controllati */
+function cleanTrip(d: any): { viaggi: any[]; soste: any[] } | null {
+  if (!d || d.app !== "in-viaggio" || !Array.isArray(d.viaggi) || !Array.isArray(d.soste)) return null;
+  if (d.viaggi.length < 1 || d.viaggi.length > 5 || d.soste.length > 500) return null;
+  const str = (v: any, n: number) => (typeof v === "string" ? v.slice(0, n) : "");
+  const num = (v: any) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+  const viaggi = d.viaggi.filter((v: any) => v && typeof v.id === "string" && typeof v.nome === "string" && num(v.inizio) !== null)
+    .map((v: any) => ({ id: str(v.id, 40), nome: str(v.nome, 50), inizio: v.inizio, fine: num(v.fine) }));
+  const ids = new Set(viaggi.map((v: any) => v.id));
+  const soste = d.soste.filter((s: any) => s && typeof s.id === "string" && ids.has(s.viaggio) && num(s.t) !== null && typeof s.luogo === "string")
+    .map((s: any) => {
+      const lat = num(s.lat), lon = num(s.lon), ok = lat !== null && lon !== null && Math.abs(lat) <= 90 && Math.abs(lon) <= 180;
+      return { id: str(s.id, 40), viaggio: s.viaggio, t: s.t, luogo: str(s.luogo, 60), lat: ok ? lat : null, lon: ok ? lon : null, fonte: str(s.fonte, 10), nota: str(s.nota, 140), umore: str(s.umore, 12) || null };
+    });
+  return viaggi.length ? { viaggi, soste } : null;
+}
+
+async function handleTrips(request: Request, url: URL, env: Env, ctx: ExecutionContext): Promise<Response> {
+  if (url.pathname === "/api/viaggi/invia") {
+    if (request.method !== "POST") return fail(405, "Metodo non ammesso");
+    const origin = request.headers.get("Origin");
+    if (origin && origin !== url.origin) return fail(403, "Invio non permesso da questo sito.");
+    if (!(request.headers.get("Content-Type") || "").includes("application/json")) return fail(415, "Serve un JSON.");
+    const sendKey = await ipKey(request, "invii");
+    if ((await count(sendKey)) >= MAX_SENDS_PER_HOUR) return fail(429, "Troppi invii in un'ora. Riprova più tardi.");
+    let body: any;
+    try {
+      const res = new Response(request.body);
+      const text = await (async () => { const reader = res.body!.getReader(); let total = 0; const parts: Uint8Array[] = []; for (;;) { const { done, value } = await reader.read(); if (done) break; total += value.byteLength; if (total > MAX_TRIP_BYTES) throw new Error("grande"); parts.push(value); } const all = new Uint8Array(total); let o = 0; for (const p of parts) { all.set(p, o); o += p.byteLength; } return new TextDecoder().decode(all); })();
+      body = JSON.parse(text);
+    } catch (e) {
+      return fail(413, "Il viaggio è troppo grande o non è valido (massimo 64 KB).");
+    }
+    const trip = cleanTrip(body);
+    if (!trip) return fail(400, "Non è un viaggio di In viaggio.");
+    let code = "";
+    for (let k = 0; k < 5 && !code; k++) { const c = newCode(); if (!(await env.VIAGGI.get("codice:" + c))) code = c; }
+    if (!code) return fail(503, "Riprova tra un attimo.");
+    await env.VIAGGI.put("codice:" + code, JSON.stringify({ app: "in-viaggio", versione: 1, ...trip }), { expirationTtl: CODE_TTL_S });
+    await bump(ctx, sendKey);
+    return respond(JSON.stringify({ codice: showCode(code), scade: new Date(Date.now() + CODE_TTL_S * 1000).toISOString() }), 200, noStore);
+  }
+  if (url.pathname === "/api/viaggi/ricevi") {
+    if (request.method !== "GET") return fail(405, "Metodo non ammesso");
+    const missKey = await ipKey(request, "sbagliati");
+    if ((await count(missKey)) >= MAX_MISSES_PER_HOUR) return fail(429, "Troppi codici sbagliati in un'ora. Riprova più tardi.");
+    const code = cleanCode(url.searchParams.get("codice"));
+    if (!code || [...url.searchParams.keys()].some((k) => k !== "codice")) { await bump(ctx, missKey); return fail(400, "Il codice ha 8 caratteri, per esempio K7P4-QX2M."); }
+    const data = await env.VIAGGI.get("codice:" + code);
+    if (!data) { await bump(ctx, missKey); return fail(404, "Codice non trovato o scaduto (vale 24 ore e una sola volta)."); }
+    await env.VIAGGI.delete("codice:" + code);   // si usa una volta sola
+    return respond(data, 200, noStore);
+  }
+  return fail(404, "Endpoint inesistente");
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+    if (url.pathname.startsWith("/api/viaggi/")) {
+      try { return await handleTrips(request, url, env, ctx); }
+      catch { return fail(500, "Errore interno"); }
+    }
     if (url.pathname.startsWith("/api/")) {
       if (request.method !== "GET") return fail(405, "Metodo non ammesso");
       try { return await handle(url, env, ctx); }

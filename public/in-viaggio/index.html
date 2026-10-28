@@ -122,9 +122,14 @@
     <div class="panel" id="diaryDetail" hidden></div>
     <div class="panel" id="diaryList"></div>
     <div class="panel">
-      <p class="hint"><b>I tuoi viaggi restano su questo dispositivo.</b> Per spostarli, per esempio dal browser dell'auto al computer, esporta il file e importalo dall'altra parte.</p>
+      <p class="hint"><b>I tuoi viaggi restano su questo dispositivo.</b> Il browser dell'auto non può scrivere sulla chiavetta USB: per spostare un viaggio usa il QR o un codice. Il file serve tra telefono e computer.</p>
       <div class="row">
-        <button class="btn" id="exportBtn" type="button">Esporta i viaggi</button>
+        <label class="field"><span>Ricevi con un codice (da un altro dispositivo)</span><input id="codeIn" type="text" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="K7P4-QX2M"></label>
+        <button class="btn primary" id="codeBtn" type="button">Ricevi</button>
+      </div>
+      <p class="hint">Per mandare un viaggio, aprilo qui sopra: "Manda al telefono" mostra un QR da inquadrare, "Invia con un codice" crea un codice valido 24 ore.</p>
+      <div class="row">
+        <button class="btn" id="exportBtn" type="button">Esporta i viaggi (file)</button>
         <label class="btn file-btn"><input id="importIn" type="file" accept="application/json,.json">Importa un file</label>
       </div>
       <p class="hint" id="ioMsg" aria-live="polite"></p>
@@ -147,6 +152,7 @@
 <script src="italia.js"></script>
 <script src="icone.js"></script>
 <script src="quiz-domande.js"></script>
+<script src="qrcode.js"></script>
 <script src="app.js"></script>
 <script src="giochi.js"></script>
 <script src="suoni.js"></script>

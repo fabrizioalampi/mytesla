@@ -39,6 +39,12 @@ questa app. Nessun suono viene da film, programmi TV, videogiochi o canzoni.
 La frase "Siamo arrivati!" usa la sintesi vocale del browser solo se ha una voce
 italiana; altrimenti suona soltanto la melodia.
 
+## Codice QR
+
+- **qrcode-generator** 2.0.4 di Kazuhiko Arase ([kazuhikoarase/qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator)).
+- **Licenza:** MIT, testo completo in `qrcode-LICENSE.txt`. File: `qrcode.js` (dist del pacchetto npm, non modificato).
+- "QR Code" è un marchio registrato di DENSO WAVE INCORPORATED.
+
 ## Icone e disegni
 
 Icone del bingo, del memory, dei suoni, degli stati d'animo e dei riquadri: disegnate

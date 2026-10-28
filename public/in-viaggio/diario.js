@@ -100,6 +100,8 @@
     const ul = el('ol', {class:'stop-list'});
     ss.forEach((s, i) => ul.append(el('li', {}, el('span', {class:'n', text:String(i + 1)}), el('span', {}, el('b', {text:s.luogo}), ` · ${new Date(s.t).toLocaleDateString('it-IT', {day:'numeric', month:'short'})} alle ${hm(s.t)}`), el('small', {}, s.umore && MOODS[s.umore] ? `${MOODS[s.umore].nome}. ` : '', s.nota || ''))));
     box.append(ul);
+    const tbox = el('div', {class:'transfer'});
+    box.append(el('div', {class:'row'}, el('button', {class:'btn', type:'button', text:'Manda al telefono (QR)', onclick:() => IV.diarioTransfer.showQr(t, tbox)}), el('button', {class:'btn', type:'button', text:'Invia con un codice', onclick:() => IV.diarioTransfer.sendCode(t, tbox)})), tbox);
     const del = el('div', {class:'row'}, el('span', {class:'grow'}), el('button', {class:'btn', type:'button', text:'Elimina il viaggio', onclick:() => {
       del.replaceWith(el('div', {class:'confirm'}, el('span', {text:`Eliminare "${t.nome}" e le sue ${ss.length} soste? Non si può annullare.`}),
         el('button', {class:'btn primary', type:'button', text:'Sì, elimina', onclick:async () => { for (const s of ss) await db.del('soste', s.id); await db.del('viaggi', t.id); if (currentId() === t.id) IV.store.del('diario-corrente'); box.hidden = true; openTrip = null; await render(); toast('Viaggio eliminato.'); }}),
@@ -135,22 +137,84 @@
     a.href = u; a.download = `in-viaggio-diario-${new Date().toISOString().slice(0, 10)}.json`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(u); a.remove(); }, 3000);
     $('#ioMsg').textContent = `Esportati ${trips.length} ${trips.length === 1 ? 'viaggio' : 'viaggi'} e ${stops.length} ${stops.length === 1 ? 'sosta' : 'soste'}.`;
   };
+  /* importa dati di In viaggio (da file, QR o codice): aggiunge, non cancella nulla */
+  async function importData(d){
+    if (!d || d.app !== 'in-viaggio' || !Array.isArray(d.viaggi) || !Array.isArray(d.soste)) throw new Error('Non sono dati di In viaggio.');
+    const okTrip = v => v && typeof v.id === 'string' && typeof v.nome === 'string' && Number.isFinite(v.inizio);
+    const okStop = s => s && typeof s.id === 'string' && typeof s.viaggio === 'string' && Number.isFinite(s.t) && typeof s.luogo === 'string' && (s.lat == null || (Math.abs(s.lat) <= 90 && Math.abs(s.lon) <= 180));
+    const vs = d.viaggi.filter(okTrip), ss = d.soste.filter(okStop);
+    for (const v of vs) await db.put('viaggi', {id:v.id, nome:v.nome.slice(0, 50), inizio:v.inizio, fine:Number.isFinite(v.fine) ? v.fine : null});
+    for (const s of ss) await db.put('soste', {id:s.id, viaggio:s.viaggio, t:s.t, luogo:s.luogo.slice(0, 60), lat:s.lat ?? null, lon:s.lon ?? null, fonte:String(s.fonte || 'testo'), nota:String(s.nota || '').slice(0, 140), umore:MOODS[s.umore] ? s.umore : null});
+    await render();
+    return `Importati ${vs.length} ${vs.length === 1 ? 'viaggio' : 'viaggi'} e ${ss.length} ${ss.length === 1 ? 'sosta' : 'soste'}` + (vs.length < d.viaggi.length || ss.length < d.soste.length ? ' (alcuni elementi non validi sono stati saltati).' : '.');
+  }
   $('#importIn').onchange = async e => {
     const f = e.target.files[0]; e.target.value = ''; if (!f) return;
-    try {
-      const d = JSON.parse(await f.text());
-      if (!d || d.app !== 'in-viaggio' || !Array.isArray(d.viaggi) || !Array.isArray(d.soste)) throw new Error('Non è un file di In viaggio.');
-      const okTrip = v => v && typeof v.id === 'string' && typeof v.nome === 'string' && Number.isFinite(v.inizio);
-      const okStop = s => s && typeof s.id === 'string' && typeof s.viaggio === 'string' && Number.isFinite(s.t) && typeof s.luogo === 'string' && (s.lat == null || (Math.abs(s.lat) <= 90 && Math.abs(s.lon) <= 180));
-      const vs = d.viaggi.filter(okTrip), ss = d.soste.filter(okStop);
-      for (const v of vs) await db.put('viaggi', {id:v.id, nome:v.nome.slice(0, 50), inizio:v.inizio, fine:Number.isFinite(v.fine) ? v.fine : null});
-      for (const s of ss) await db.put('soste', {id:s.id, viaggio:s.viaggio, t:s.t, luogo:s.luogo.slice(0, 60), lat:s.lat ?? null, lon:s.lon ?? null, fonte:String(s.fonte || 'testo'), nota:String(s.nota || '').slice(0, 140), umore:MOODS[s.umore] ? s.umore : null});
-      await render();
-      $('#ioMsg').textContent = `Importati ${vs.length} ${vs.length === 1 ? 'viaggio' : 'viaggi'} e ${ss.length} ${ss.length === 1 ? 'sosta' : 'soste'}` + (vs.length < d.viaggi.length || ss.length < d.soste.length ? ' (alcuni elementi non validi sono stati saltati).' : '.');
-    } catch (err) { $('#ioMsg').textContent = 'Non riesco a importare questo file: ' + (err.message || 'formato non valido'); }
+    try { $('#ioMsg').textContent = await importData(JSON.parse(await f.text())); }
+    catch (err) { $('#ioMsg').textContent = 'Non riesco a importare questo file: ' + (err.message || 'formato non valido'); }
   };
 
+  /* ---------- dall'auto al telefono: QR e codice breve ---------- */
+  const tripData = t => ({app:'in-viaggio', versione:1, viaggi:[t], soste:stopsOf(t.id)});
+  const b64u = bytes => { let s = ''; for (const b of bytes) s += String.fromCharCode(b); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
+  const unb64u = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+  async function pack(obj){
+    const raw = new TextEncoder().encode(JSON.stringify(obj));
+    if (typeof CompressionStream === 'undefined') return 'j' + b64u(raw);
+    const z = new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer());
+    return 'z' + b64u(z);
+  }
+  async function unpack(s){
+    const bytes = unb64u(s.slice(1));
+    const raw = s[0] === 'z' ? new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer()) : bytes;
+    return JSON.parse(new TextDecoder().decode(raw));
+  }
+  const QR_MAX = 2200;   // oltre, il QR diventa troppo fitto da inquadrare su uno schermo
+  async function showQr(t, box){
+    let d = tripData(t), url = `${location.origin}/in-viaggio/#/diario/ricevi/${await pack(d)}`, note = '';
+    if (url.length > QR_MAX) { d = Object.assign({}, d, {soste:d.soste.map(s => Object.assign({}, s, {nota:''}))}); url = `${location.origin}/in-viaggio/#/diario/ricevi/${await pack(d)}`; note = ' Le note non ci stavano: sono rimaste solo qui.'; }
+    box.textContent = '';
+    if (url.length > QR_MAX) { box.append(el('p', {class:'hint warn', text:'Questo viaggio ha troppe soste per un QR: usa "Invia con un codice".'})); return; }
+    const qr = qrcode(0, 'L'); qr.addData(url); qr.make();
+    const holder = el('div', {class:'qr'}); holder.innerHTML = qr.createSvgTag({cellSize:6, margin:4, scalable:true});
+    box.append(holder, el('p', {class:'hint', text:'Inquadra il codice con la fotocamera del telefono: si apre In viaggio e il viaggio si aggiunge al diario del telefono. Non passa da nessun server.' + note}));
+  }
+  async function sendCode(t, box){
+    box.textContent = ''; box.append(el('p', {class:'hint', text:'Preparo il codice…'}));
+    try {
+      const r = await fetch('/api/viaggi/invia', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(tripData(t))});
+      const b = await r.json().catch(() => ({}));
+      if (!r.ok || !b.codice) throw new Error(b.errore || 'servizio non disponibile');
+      box.textContent = '';
+      box.append(el('p', {class:'code', text:b.codice}), el('p', {class:'hint', text:`Sull'altro dispositivo apri In viaggio, Diario, "Ricevi con un codice" e scrivi questo codice. Vale fino alle ${hm(Date.parse(b.scade))} di domani e una sola volta; poi il viaggio viene cancellato dal server.`}));
+    } catch (e) { box.textContent = ''; box.append(el('p', {class:'hint warn', text:'Non riesco a creare il codice: ' + (e.message || 'manca la connessione') + '. Serve la connessione a Internet.'})); }
+  }
+  IV.diarioTransfer = {showQr, sendCode};
+  $('#codeBtn').onclick = async () => {
+    const msg = $('#ioMsg'), c = $('#codeIn').value.trim();
+    if (!c) { msg.textContent = 'Scrivi il codice di 8 caratteri.'; return; }
+    msg.textContent = 'Cerco il viaggio…';
+    try {
+      const r = await fetch('/api/viaggi/ricevi?codice=' + encodeURIComponent(c));
+      const b = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(b.errore || 'servizio non disponibile');
+      msg.textContent = await importData(b); $('#codeIn').value = '';
+    } catch (e) { msg.textContent = e.message || 'Non riesco a ricevere il viaggio.'; }
+  };
+  /* arrivo da un QR: #/diario/ricevi/<dati> */
+  async function fromLink(){
+    const m = location.hash.match(/^#\/diario\/ricevi\/([A-Za-z0-9_-]+)$/); if (!m) return;
+    const box = $('#diaryDetail'); box.hidden = false; box.textContent = '';
+    try {
+      const d = await unpack(m[1]); const t = d.viaggi && d.viaggi[0];
+      if (!t) throw new Error('vuoto');
+      box.append(el('h2', {text:'Viaggio in arrivo'}), el('p', {text:`"${t.nome}", ${d.soste.length} ${d.soste.length === 1 ? 'sosta' : 'soste'}. Lo aggiungo al diario di questo dispositivo?`}),
+        el('div', {class:'row'}, el('button', {class:'btn primary big', type:'button', text:'Aggiungi al diario', onclick:async () => { const msg = await importData(d); history.replaceState(null, '', '#/diario'); box.hidden = true; toast(msg, 4000); }}),
+          el('button', {class:'btn', type:'button', text:'No', onclick:() => { history.replaceState(null, '', '#/diario'); box.hidden = true; }})));
+    } catch (e) { box.append(el('p', {class:'hint warn', text:'Il codice QR non è completo o non è di In viaggio.'})); }
+  }
+
   async function render(){ await load(); renderCurrent(); renderList(); if (openTrip) showTrip(openTrip); }
-  IV.views.diario = async () => { await render(); if (!(await db.persistent())) toast('Questo browser non permette di salvare il diario: le soste restano finché la pagina è aperta.', 5000); };
+  IV.views.diario = async () => { await render(); await fromLink(); if (!(await db.persistent())) toast('Questo browser non permette di salvare il diario: le soste restano finché la pagina è aperta.', 5000); };
   IV.diario = {db, proj, inItaly};
 })();

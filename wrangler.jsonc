@@ -4,7 +4,8 @@
   "compatibility_date": "2026-10-01",
 
   // Il codice del Worker gira solo per /api/* (dati dei satelliti da N2YO, con la chiave nel
-  // segreto N2YO_API_KEY). Tutto il resto sono file statici con gli header di public/_headers.
+  // segreto N2YO_API_KEY, e i codici brevi di In viaggio). Tutto il resto sono file statici
+  // con gli header di public/_headers.
   "main": "src/index.ts",
   "assets": {
     "directory": "./public",
@@ -12,6 +13,11 @@
     "not_found_handling": "404-page",
     "run_worker_first": ["/api/*"]
   },
+
+  // Codici brevi di In viaggio: un viaggio resta qui al massimo 24 ore, poi KV lo cancella da solo.
+  "kv_namespaces": [
+    { "binding": "VIAGGI", "id": "7131586f16b44d42862cd55b002a68ff" }
+  ],
 
   "routes": [
     { "pattern": "mytesla.fabrizioalampi.it", "custom_domain": true }
