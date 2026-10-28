@@ -8,6 +8,7 @@ vive nella sua cartella ed è indipendente dalle altre.
 | --- | --- |
 | Light Show Studio | https://mytesla.fabrizioalampi.it/light-show/ |
 | Wrap Studio | https://mytesla.fabrizioalampi.it/wrap-studio/ |
+| Satelliti sopra di te | https://mytesla.fabrizioalampi.it/satelliti/ |
 
 ## Light Show Studio
 
@@ -54,6 +55,46 @@ Il repository non ha una licenza, quindi qui non vengono copiati: li scarica il
 browser direttamente da `raw.githubusercontent.com`, da un commit fissato in
 `public/wrap-studio/styles.js`, e li tiene in cache in IndexedDB.
 
+## Satelliti sopra di te
+
+Mostra cosa passa sopra di te adesso su una mappa del cielo e il conto alla
+rovescia al prossimo passaggio visibile della ISS (poi Tiangong ed Envisat),
+con istruzioni in parole semplici. Pensata per lo schermo dell'auto, di sera:
+tema scuro, modalità rossa per la visione notturna.
+
+I dati vengono da [N2YO.com](https://www.n2yo.com/api/). Il browser non chiama
+mai N2YO: lo fa il Worker in `src/index.ts`, con la chiave nel segreto
+`N2YO_API_KEY`.
+
+- `GET /api/satelliti/sopra?lat=..&lon=..` (above, tutte le categorie): cache 2 minuti per zona
+- `GET /api/satelliti/passaggi?id=..&lat=..&lon=..` (visualpasses, 5 giorni): cache 1 ora per zona
+- `GET /api/satelliti/tle?id=..` (tle): cache 6 ore
+
+La posizione è arrotondata a 0,1 gradi (circa 10 km) già nel browser e di nuovo
+nel Worker. Il Worker legge da ogni risposta quante chiamate ha fatto la chiave
+nell'ultima ora e si ferma al 90% del limite (100 all'ora per above e
+visualpasses), servendo l'ultima copia. ISS, Tiangong e il satellite toccato si
+muovono dal vivo con [satellite.js](https://github.com/shashwatak/satellite-js)
+7.1.0 (MIT, impacchettato in `public/satelliti/satellite.min.js`).
+
+### La chiave N2YO
+
+In locale, nel file `.dev.vars` (escluso da git):
+
+```
+N2YO_API_KEY=la-tua-chiave
+```
+
+In produzione è un segreto del Worker `tesla-light-show-studio` (il nome in
+`wrangler.jsonc`, non "mytesla"):
+
+```
+npx wrangler secret put N2YO_API_KEY --name tesla-light-show-studio
+```
+
+oppure dalla dashboard: Workers & Pages, `tesla-light-show-studio`, Settings,
+Variables and Secrets, Add, tipo Secret.
+
 ## Struttura
 
 ```
@@ -73,7 +114,14 @@ public/
     styles.js            modelli, tavolozze, stili generati via codice, regole sul nome
     app.js               anteprima, export PNG sotto 1 MB, raccolta e ZIP, testo, logo, pennello
     jszip.min.js         copia di JSZip per lo ZIP della raccolta
-wrangler.jsonc           Worker Cloudflare con soli file statici su mytesla.fabrizioalampi.it
+  satelliti/
+    index.html, app.css  pagina e stili (scuro, rosso notte, chiaro)
+    app.js               mappa del cielo, conto alla rovescia, passaggi, posizione
+    calcoli.js           Web Worker: dati da /api/satelliti, posizioni, treni Starlink
+    citta.js             capoluoghi di provincia con coordinate (nessun servizio esterno)
+    satellite.min.js     satellite.js 7.1.0 impacchettato (licenza in satellite.js-LICENSE.md)
+src/index.ts             Worker per /api/satelliti/* (N2YO, cache, limiti)
+wrangler.jsonc           Worker Cloudflare su mytesla.fabrizioalampi.it: file statici, codice solo per /api/*
 ```
 
 Per aggiungere un'app: una cartella nuova in `public/`, una scheda in

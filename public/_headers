@@ -19,3 +19,11 @@
 /wrap-studio/*
   ! Content-Security-Policy
   Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' blob: data: https://raw.githubusercontent.com; connect-src https://raw.githubusercontent.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'
+
+# Satelliti sopra di te: Web Worker dei calcoli (worker-src), dati da /api/ (connect-src 'self'),
+# e la geolocalizzazione, che altrove resta bloccata, permessa solo a questa pagina.
+/satelliti/*
+  ! Content-Security-Policy
+  ! Permissions-Policy
+  Content-Security-Policy: default-src 'none'; script-src 'self'; worker-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'
+  Permissions-Policy: camera=(), microphone=(), geolocation=(self)

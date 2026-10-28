@@ -3,10 +3,14 @@
   "name": "tesla-light-show-studio",
   "compatibility_date": "2026-10-01",
 
-  // Solo file statici: niente codice lato server.
+  // Il codice del Worker gira solo per /api/* (dati dei satelliti da N2YO, con la chiave nel
+  // segreto N2YO_API_KEY). Tutto il resto sono file statici con gli header di public/_headers.
+  "main": "src/index.ts",
   "assets": {
     "directory": "./public",
-    "not_found_handling": "404-page"
+    "binding": "ASSETS",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/api/*"]
   },
 
   "routes": [
