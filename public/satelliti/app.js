@@ -63,8 +63,10 @@ function brightness(m){
   return m <= -2.5 ? 'Più luminoso di qualsiasi stella, impossibile non vederlo.' : m <= -1 ? 'Luminosissimo, come Giove.' : m <= 0.5 ? 'Luminoso come una stella brillante.' : m <= 2 ? 'Come una stella ben visibile.' : 'Come una stella debole: serve un cielo buio.';
 }
 function howTo(p){
-  const up = p.max.el >= 80 ? 'passa proprio sopra la testa' : `sale ${height(p.max.el)} verso ${dir(p.max.az)}`;
-  return `Compare a ${dir(p.start.az)} alle ${hm(p.start.t)}, ${up}, sparisce a ${dir(p.end.az)} alle ${hm(p.end.t)}. ${brightness(p.mag)}`.trim();
+  const atTop = p.max.t - p.start.t < 20000, up = p.max.el >= 80 ? 'passa proprio sopra la testa' : `sale ${height(p.max.el)} verso ${dir(p.max.az)}`;
+  const start = p.startShadow ? `Si accende ${height(p.start.el)} a ${dir(p.start.az)} alle ${hm(p.start.t)}, uscendo dall'ombra della Terra` : `Compare a ${dir(p.start.az)} alle ${hm(p.start.t)}`;
+  const end = p.endShadow ? `si spegne a ${dir(p.end.az)} alle ${hm(p.end.t)}, entrando nell'ombra della Terra` : `sparisce a ${dir(p.end.az)} alle ${hm(p.end.t)}`;
+  return `${start}, ${atTop ? 'poi scende' : up}, ${end}. ${brightness(p.mag)}`.trim();
 }
 function countdown(ms){
   const s = Math.max(0, Math.round(ms / 1000)), d = Math.floor(s / 86400), h = Math.floor(s / 3600) % 24, m = Math.floor(s / 60) % 60, x = s % 60;
@@ -80,7 +82,7 @@ $('#themeBtn').onclick = () => { prefs.theme = THEMES[(THEMES.indexOf(prefs.them
 
 /* ---------- stato ---------- */
 let ids = [], names = [], cats = [], pos = new Float32Array(0), soloStazioni = false;
-let passes = [], train = null, selected = null, shownPass = null;
+let passes = [], train = null, selected = null, shownPass = null, userShown = false;
 const catOn = Object.fromEntries(CATS.map(c => [c.id, c.on]));
 const meta = {sopra:null, passaggi:null};
 
@@ -93,7 +95,10 @@ worker.onmessage = e => {
   else if (m.type === 'meta') { meta[m.what] = m; showMeta(); if (!m.ok && !ids.length) $('#loadText').textContent = (m.errore || 'Il servizio dei satelliti non risponde.') + ' Riprovo tra 2 minuti.'; }
   else if (m.type === 'detail') { if (selected && selected.idx === m.idx) { Object.assign(selected, m); renderInfo(); draw(); } }
   else if (m.type === 'train') { train = m.train; renderTrain(); draw(); }
-  else if (m.type === 'tracks') { for (const t of m.tracks) { const p = passes.find(x => x.key === t.key); if (p) p.track = t.track; } draw(); }
+  else if (m.type === 'tracks') {
+    for (const t of m.tracks) { const p = passes.find(x => x.key === t.key); if (!p) continue; p.track = t.track; if (t.start) Object.assign(p, {start:t.start, max:t.max, end:t.end, startShadow:t.startShadow, endShadow:t.endShadow, refined:true}); }
+    passes.sort((a, b) => a.start.t - b.start.t); updateNext(); renderPasses(); draw();
+  }
 };
 worker.onerror = e => toast('Errore nei calcoli: ' + (e.message || 'sconosciuto'), 6000);
 document.addEventListener('visibilitychange', () => worker.postMessage({type:'visible', visible:!document.hidden}));
@@ -110,14 +115,15 @@ async function loadPasses(){
       last = {ok:r.ok, cache:r.headers.get('X-Satelliti-Cache'), at:r.headers.get('X-Satelliti-Aggiornato'), errore:b && b.errore};
       if (!r.ok || !b || !Array.isArray(b.passes)) continue;
       okAny = true;
-      for (const q of b.passes) out.push({id:s.id, name:s.name, key:`${s.id}-${q.startUTC}`, start:{t:q.startUTC * 1000, az:q.startAz, el:q.startEl}, max:{t:q.maxUTC * 1000, az:q.maxAz, el:q.maxEl}, end:{t:q.endUTC * 1000, az:q.endAz, el:q.endEl}, mag:q.mag, raw:Object.assign({id:s.id, key:`${s.id}-${q.startUTC}`}, q)});
+      /* a occhio nudo: niente passaggi più deboli di magnitudine 4 (100000 = magnitudine sconosciuta) */
+      for (const q of b.passes.filter(q => !(q.mag > 4 && q.mag < 100000))) out.push({id:s.id, name:s.name, key:`${s.id}-${q.startUTC}`, start:{t:q.startUTC * 1000, az:q.startAz, el:q.startEl}, max:{t:q.maxUTC * 1000, az:q.maxAz, el:q.maxEl}, end:{t:q.endUTC * 1000, az:q.endAz, el:q.endEl}, mag:q.mag, raw:Object.assign({id:s.id, key:`${s.id}-${q.startUTC}`}, q)});
     } catch (e) { last = {ok:false, errore:'Connessione assente.'}; }
   }
   if (job !== passJob) return;
   meta.passaggi = Object.assign(last || {}, {ok:okAny}); showMeta();
-  passes = out.sort((a, b) => a.start.t - b.start.t); shownPass = null;
+  passes = out.sort((a, b) => a.start.t - b.start.t); shownPass = null; userShown = false;
   worker.postMessage({type:'tracks', passes:passes.map(x => x.raw)});
-  renderPasses(); updateNext();
+  updateNext(); renderPasses();
 }
 setInterval(loadPasses, 60 * 60 * 1000);
 
@@ -225,7 +231,7 @@ function paint(){
   }
   // punti: prima i più numerosi, poi i più importanti sopra
   const order = ['detriti', 'razzi', 'starlink', 'altri', 'navigazione', 'osservazione', 'meteo', 'scienza', 'stazioni'];
-  const size = {stazioni:Math.max(5, W * 0.011), starlink:Math.max(1.4, W * 0.0026), detriti:Math.max(1.2, W * 0.002)};
+  const size = {stazioni:Math.max(5, W * 0.011), starlink:Math.max(1.4, W * 0.0026), detriti:Math.max(1.2, W * 0.002), razzi:Math.max(1.6, W * 0.003), altri:Math.max(1.8, W * 0.0034)};
   for (const c of order) {
     if (!catOn[c]) continue;
     g.fillStyle = C['c-' + c] || C.fg; const r = size[c] || Math.max(2.6, W * 0.005);
@@ -285,7 +291,12 @@ function renderInfo(){
 $('#infoClose').onclick = () => { selected = null; worker.postMessage({type:'unselect'}); renderInfo(); draw(); };
 
 /* ---------- prossimo passaggio ed elenco ---------- */
-function nextPass(){ const now = Date.now(), up = passes.filter(p => p.end.t > now); return up.find(p => p.id === 25544) || up[0] || null; }
+/* per il conto alla rovescia: la ISS prima, preferendo un passaggio che valga la pena (almeno 2 minuti o oltre 25 gradi) */
+const good = p => p.end.t - p.start.t >= 120000 || p.max.el >= 25;
+function nextPass(){
+  const now = Date.now(), up = passes.filter(p => p.end.t > now), iss = up.filter(p => p.id === 25544);
+  return iss.find(good) || up.find(good) || iss[0] || up[0] || null;
+}
 let current = null;
 function updateNext(){
   const p = nextPass(); current = p;
@@ -296,10 +307,11 @@ function updateNext(){
     $('#countdown').textContent = '--:--'; $('#nextWhen').textContent = err ? (meta.passaggi.errore || '') : ''; $('#nextHow').textContent = ''; btn.hidden = true; return;
   }
   $('#nextName').textContent = prettyName(p.id, p.name);
-  $('#nextWhen').textContent = `${cap(dayWord(p.start.t))} alle ${hm(p.start.t)}, visibile per circa ${Math.max(1, Math.round((p.end.t - p.start.t) / 60000))} minuti`;
+  $('#nextWhen').textContent = `${cap(dayWord(p.start.t))} alle ${hm(p.start.t)}, visibile per ${(m => m <= 1 ? 'circa un minuto' : `circa ${m} minuti`)(Math.round((p.end.t - p.start.t) / 60000))}`;
   $('#nextHow').textContent = howTo(p);
   btn.hidden = false;
-  if (!shownPass) { shownPass = p; draw(); }
+  /* la traiettoria segue il conto alla rovescia, finché l'utente non ne sceglie un'altra */
+  if (!userShown || !shownPass) { shownPass = p; draw(); }
   tickCountdown();
 }
 function tickCountdown(){
@@ -311,7 +323,7 @@ function tickCountdown(){
   else { $('#nextKicker').textContent = 'PROSSIMO PASSAGGIO VISIBILE TRA'; $('#countdown').textContent = countdown(p.start.t - now); }
 }
 setInterval(tickCountdown, 1000);
-$('#showPassBtn').onclick = () => { shownPass = current; renderPasses(); draw(); $('#sky').scrollIntoView({behavior:'smooth', block:'center'}); };
+$('#showPassBtn').onclick = () => { shownPass = current; userShown = false; renderPasses(); draw(); $('#sky').scrollIntoView({behavior:'smooth', block:'center'}); };
 function renderPasses(loading){
   const ol = $('#passes'); ol.textContent = '';
   const now = Date.now(), list = passes.filter(p => p.end.t > now).slice(0, 40);
@@ -323,7 +335,7 @@ function renderPasses(loading){
     const n = document.createElement('span'); n.className = 'n'; n.textContent = prettyName(p.id, p.name); const sn = document.createElement('small'); sn.textContent = `da ${dir(p.start.az)} a ${dir(p.end.az)}, ${height(p.max.el)}`; n.appendChild(sn);
     const m = document.createElement('span'); m.className = 'm'; m.textContent = `max ${Math.round(p.max.el)}°` + (p.mag < 100000 ? ` · mag ${p.mag.toFixed(1).replace('.', ',')}` : '');
     li.append(t, n, m);
-    const show = () => { shownPass = p; renderPasses(); draw(); toast(`${prettyName(p.id, p.name)}: ${howTo(p)}`, 6000); };
+    const show = () => { shownPass = p; userShown = true; renderPasses(); draw(); toast(`${prettyName(p.id, p.name)}: ${howTo(p)}`, 6000); };
     li.onclick = show; li.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); show(); } };
     ol.appendChild(li);
   }

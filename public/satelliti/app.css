@@ -5,7 +5,7 @@
   --bg:#060b16; --panel:#0c1424; --panel2:#121d33; --line:#1f2d4a; --fg:#e4ecfb; --muted:#8fa0c2; --dim:#5d6e91;
   --accent:#7fd4ff; --accent-fg:#04121f; --gold:#ffd36e; --warn:#ffb54d;
   --sky:#081226; --sky-ring:#1c2c4d; --sky-text:#9fb2d8; --track:#ffd36e;
-  --c-stazioni:#ffd36e; --c-starlink:#7d8cab; --c-meteo:#5fe3c0; --c-osservazione:#9be07a; --c-navigazione:#c49bff; --c-scienza:#ff8fb8; --c-altri:#7fd4ff; --c-razzi:#b0a48a; --c-detriti:#56607a;
+  --c-stazioni:#ffd36e; --c-starlink:#7d8cab; --c-meteo:#5fe3c0; --c-osservazione:#9be07a; --c-navigazione:#c49bff; --c-scienza:#ff8fb8; --c-altri:#5f7fb0; --c-razzi:#b0a48a; --c-detriti:#56607a;
   --font-display:'Space Grotesk',system-ui,sans-serif; --font-body:'IBM Plex Sans',system-ui,sans-serif; --font-mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
   color-scheme:dark;
 }
@@ -19,7 +19,7 @@
   --bg:#eef2f8; --panel:#ffffff; --panel2:#f2f5fa; --line:#d5dcea; --fg:#0e1a30; --muted:#4f5f80; --dim:#7484a3;
   --accent:#0d6fb3; --accent-fg:#ffffff; --gold:#a86a00; --warn:#a85d00;
   --sky:#0d1830; --sky-ring:#26385e; --sky-text:#a9bbdd; --track:#ffd36e;
-  --c-stazioni:#ffd36e; --c-starlink:#8a98b5; --c-meteo:#5fe3c0; --c-osservazione:#9be07a; --c-navigazione:#c49bff; --c-scienza:#ff8fb8; --c-altri:#7fd4ff; --c-razzi:#b0a48a; --c-detriti:#56607a;
+  --c-stazioni:#ffd36e; --c-starlink:#8a98b5; --c-meteo:#5fe3c0; --c-osservazione:#9be07a; --c-navigazione:#c49bff; --c-scienza:#ff8fb8; --c-altri:#5f7fb0; --c-razzi:#b0a48a; --c-detriti:#56607a;
   color-scheme:light;
 }
 *{box-sizing:border-box}

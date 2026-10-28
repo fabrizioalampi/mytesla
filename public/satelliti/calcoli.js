@@ -122,16 +122,40 @@ async function needTle(id){
     else tleAsked.delete(id);
   } catch (e) { tleAsked.delete(id); }
 }
-/* traiettoria di un passaggio, dal TLE se c'è, altrimenti un arco per i tre punti di N2YO */
-function trackFor(p){
-  const out = [];
-  if (tle.has(p.id)) for (let t = p.startUTC * 1000; t <= p.endUTC * 1000; t += 10000) { const s = tleState(p.id, t); if (s && s.el >= 0) out.push([+s.az.toFixed(1), +s.el.toFixed(1)]); }
-  /* il TLE deve confermare il passaggio di N2YO (stessa altezza massima, entro pochi gradi) */
-  if (out.length > 2 && Math.abs(Math.max(...out.map(q => q[1])) - p.maxEl) < 8) return out;
-  out.length = 0;
-  /* curva di secondo grado per inizio, massimo e fine (azimut "srotolato" per non saltare a 0/360) */
+/* Sole (posizione a bassa precisione) e ombra cilindrica della Terra */
+function sunDir(ms){
+  const n = ms / 86400000 + 2440587.5 - 2451545, L = (280.46 + 0.9856474 * n) * RAD, g = (357.528 + 0.9856003 * n) * RAD;
+  const l = L + (1.915 * Math.sin(g) + 0.02 * Math.sin(2 * g)) * RAD, e = (23.439 - 0.0000004 * n) * RAD;
+  return [Math.cos(l), Math.cos(e) * Math.sin(l), Math.sin(e) * Math.sin(l)];
+}
+function inLight(id, ms){
+  const pv = S.propagate(tle.get(id).rec, new Date(ms)); if (!pv || !pv.position) return false;
+  const p = pv.position, s = sunDir(ms), d = p.x * s[0] + p.y * s[1] + p.z * s[2];
+  return d > 0 || Math.hypot(p.x - d * s[0], p.y - d * s[1], p.z - d * s[2]) > 6378.137;
+}
+/* Passaggio: N2YO dice se è visibile e quanto è luminoso, ma inizio e fine sono sorgere e
+   tramonto sull'orizzonte. Dal TLE ricaviamo il tratto davvero visibile: in luce e sopra 10 gradi
+   (come Heavens-Above), con il punto più alto e la traiettoria. */
+function refine(p){
+  if (!tle.has(p.id)) return null;
+  const pts = [];
+  let a = null, b = null, best = null;
+  for (let t = p.startUTC * 1000 - 60000; t <= p.endUTC * 1000 + 60000; t += 2000) {
+    const s = tleState(p.id, t); if (!s) continue;
+    if (s.el >= 10 && inLight(p.id, t)) { if (!a) a = {t, az:s.az, el:s.el}; b = {t, az:s.az, el:s.el}; if (!best || s.el > best.el) best = {t, az:s.az, el:s.el}; if (pts.length === 0 || t - pts.lastT >= 8000) { pts.push([+s.az.toFixed(1), +s.el.toFixed(1)]); pts.lastT = t; } }
+    else if (a) break;
+  }
+  /* il TLE deve confermare N2YO: stesso punto più alto entro qualche grado, se in luce */
+  const n2yoMax = tleState(p.id, p.maxUTC * 1000);
+  if (!a || !n2yoMax || Math.abs(n2yoMax.el - p.maxEl) > 8) return null;
+  pts.push([+b.az.toFixed(1), +b.el.toFixed(1)]);
+  const r = x => ({t:Math.round(x.t), az:+x.az.toFixed(1), el:+x.el.toFixed(1)});
+  return {start:r(a), max:r(best), end:r(b), track:pts, startShadow:a.el > 10.6, endShadow:b.el > 10.6};
+}
+/* traiettoria senza TLE: curva per inizio, massimo e fine di N2YO */
+function arc(p){
   const unwrap = (a, b) => { let d = b - a; if (d > 180) d -= 360; if (d < -180) d += 360; return a + d; };
-  const a0 = p.startAz, a1 = unwrap(a0, p.maxAz), a2 = unwrap(a1, p.endAz);
+  const a0 = p.startAz, a1 = unwrap(a0, p.maxAz), a2 = unwrap(a1, p.endAz), out = [];
   const lag = (y0, y1, y2, u) => y0 * (2 * u - 1) * (u - 1) + y1 * 4 * u * (1 - u) + y2 * u * (2 * u - 1);
   for (let k = 0; k <= 24; k++) { const u = k / 24; out.push([((lag(a0, a1, a2, u) % 360) + 360) % 360, Math.max(0, lag(p.startEl, p.maxEl, p.endEl, u))]); }
   return out;
@@ -175,5 +199,5 @@ self.onmessage = e => {
   } else if (m.type === 'visible') { visible = m.visible; if (visible) tick(); }
   else if (m.type === 'select') { selected = m.idx; const mm = model[m.idx]; if (mm) { needTle(mm.id).then(() => detail(m.idx)); detail(m.idx); } }
   else if (m.type === 'unselect') selected = null;
-  else if (m.type === 'tracks') { Promise.all(m.passes.map(p => needTle(p.id))).then(() => self.postMessage({type:'tracks', tracks:m.passes.map(p => ({key:p.key, track:trackFor(p)}))})); }
+  else if (m.type === 'tracks') { Promise.all(m.passes.map(p => needTle(p.id))).then(() => self.postMessage({type:'tracks', tracks:m.passes.map(p => { const r = refine(p); return r ? Object.assign({key:p.key}, r) : {key:p.key, track:arc(p)}; })})); }
 };
