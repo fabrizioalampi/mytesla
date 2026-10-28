@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>In viaggio</title>
+<meta name="description" content="Per chi viaggia in auto: quanto manca all'arrivo, giochi per i passeggeri, una soundboard e il diario dei viaggi. Funziona anche senza connessione.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" type="image/svg+xml" href="/in-viaggio/icon.svg">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="top">
+  <a class="btn ghost" href="/" aria-label="Torna a tutte le app">← App</a>
+  <button class="btn ghost" id="homeBtn" type="button" hidden><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg>Inizio</button>
+  <div class="brand"><img src="icon.svg" alt="" width="36" height="36"><b>In viaggio</b></div>
+  <span class="grow"></span>
+  <span class="offline" id="offline" hidden>Senza rete: l'app funziona lo stesso</span>
+</header>
+
+<main id="app">
+  <!-- HOME -->
+  <section class="view" data-view="home">
+    <div class="tiles">
+      <a class="tile t-manca" href="#/quanto-manca">
+        <svg class="tile-ic" viewBox="0 0 64 64" aria-hidden="true"><path d="M6 50c10-4 16-14 26-14s14-12 26-16" fill="none" stroke="var(--ic-6)" stroke-width="10" stroke-linecap="round"/><path d="M6 50c10-4 16-14 26-14s14-12 26-16" fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="3 5" stroke-linecap="round"/><circle cx="46" cy="14" r="9" fill="var(--ic-1)" stroke="var(--ink)" stroke-width="3"/><path d="M46 9v5l3 2" fill="none" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/></svg>
+        <span class="tile-t">Quanto manca?</span><span class="tile-s">La strada fino all'arrivo</span>
+        <span class="tile-demo" id="homeDemo"></span>
+      </a>
+      <a class="tile t-giochi" href="#/giochi">
+        <svg class="tile-ic" viewBox="0 0 64 64" aria-hidden="true"><rect x="8" y="14" width="26" height="26" rx="6" fill="var(--ic-3)" stroke="var(--ink)" stroke-width="3"/><circle cx="16" cy="22" r="2.5" fill="var(--ink)"/><circle cx="26" cy="32" r="2.5" fill="var(--ink)"/><circle cx="21" cy="27" r="2.5" fill="var(--ink)"/><path d="M38 30l10-16 10 16z" fill="var(--ic-1)" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round"/><circle cx="46" cy="46" r="10" fill="var(--ic-2)" stroke="var(--ink)" stroke-width="3"/></svg>
+        <span class="tile-t">Giochi</span><span class="tile-s">Bingo, quiz, memory e tris</span>
+      </a>
+      <a class="tile t-suoni" href="#/suoni">
+        <svg class="tile-ic" viewBox="0 0 64 64" aria-hidden="true"><path d="M10 26h10l14-12v36L20 38H10z" fill="var(--ic-4)" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round"/><path d="M42 24c4 4 4 12 0 16M48 18c8 8 8 20 0 28" fill="none" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/></svg>
+        <span class="tile-t">Suoni</span><span class="tile-s">Applausi, fanfare e risate</span>
+      </a>
+      <a class="tile t-diario" href="#/diario">
+        <svg class="tile-ic" viewBox="0 0 64 64" aria-hidden="true"><path d="M10 14l14-5 16 5 14-5v41l-14 5-16-5-14 5z" fill="var(--ic-5)" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round"/><path d="M24 9v41M40 14v41" stroke="var(--ink)" stroke-width="2"/><path d="M32 40c-6-7-8-10-8-14a8 8 0 0 1 16 0c0 4-2 7-8 14z" fill="var(--ic-3)" stroke="var(--ink)" stroke-width="3"/><circle cx="32" cy="26" r="3" fill="var(--paper)"/></svg>
+        <span class="tile-t">Diario dei viaggi</span><span class="tile-s">Le soste, sulla mappa</span>
+      </a>
+    </div>
+    <p class="safety">Chi guida non usa l'app mentre l'auto è in movimento.</p>
+  </section>
+
+  <!-- QUANTO MANCA -->
+  <section class="view" data-view="quanto-manca" hidden>
+    <div class="panel" id="tripSetup">
+      <h2>Prepariamo il viaggio</h2>
+      <p class="hint">Leggi l'orario di arrivo sul navigatore, oppure scrivi quanto dura il viaggio.</p>
+      <div class="seg" role="group" aria-label="Come inserire il tempo">
+        <button type="button" class="seg-btn" data-mode="arrivo" aria-pressed="true">Orario di arrivo</button>
+        <button type="button" class="seg-btn" data-mode="durata" aria-pressed="false">Durata del viaggio</button>
+      </div>
+      <div class="row" id="modeArrivo"><label class="field big"><span>Arriviamo alle</span><input id="arrIn" type="time" required></label></div>
+      <div class="row" id="modeDurata" hidden>
+        <label class="field big"><span>Ore</span><input id="durH" type="number" min="0" max="48" value="2" inputmode="numeric"></label>
+        <label class="field big"><span>Minuti</span><input id="durM" type="number" min="0" max="59" step="5" value="30" inputmode="numeric"></label>
+      </div>
+      <div class="row">
+        <label class="field"><span>Partenza (facoltativa)</span><input id="fromIn" type="text" maxlength="40" placeholder="Per esempio Milano" list="cityList"></label>
+        <label class="field"><span>Destinazione (facoltativa)</span><input id="toIn" type="text" maxlength="40" placeholder="Per esempio Roma" list="cityList"></label>
+      </div>
+      <div class="stops" id="stopsSetup"></div>
+      <div class="row">
+        <button class="btn" id="addStop" type="button">+ Aggiungi una tappa</button>
+        <span class="grow"></span>
+        <button class="btn primary big" id="startTrip" type="button">Partiamo!</button>
+      </div>
+      <p class="hint warn" id="setupMsg" hidden></p>
+    </div>
+
+    <div class="panel trip" id="tripView" hidden>
+      <div class="trip-head">
+        <div><p class="kicker" id="tripRoute"></p><p class="countdown" id="tripLeft">--</p><p class="trip-eta" id="tripEta"></p></div>
+        <p class="milestone" id="milestone" aria-live="polite"></p>
+      </div>
+      <div class="road-box"><svg class="road" id="road" viewBox="0 0 1000 260" aria-label="La strada fino all'arrivo"></svg></div>
+      <p class="km" id="tripKm" hidden></p>
+      <div class="row tools">
+        <button class="btn big" id="minus5" type="button">−5 min</button>
+        <button class="btn big" id="plus5" type="button">+5 min</button>
+        <button class="btn big" id="pauseBtn" type="button">Pausa</button>
+        <button class="btn" id="kmBtn" type="button" hidden>Quanti km mancano?</button>
+        <span class="grow"></span>
+        <button class="btn" id="endTrip" type="button">Fine viaggio</button>
+      </div>
+      <div class="confirm" id="endConfirm" hidden><span>Chiudere il viaggio?</span><button class="btn primary" id="endYes" type="button">Sì, siamo arrivati</button><button class="btn" id="endNo" type="button">No</button></div>
+    </div>
+  </section>
+
+  <!-- GIOCHI -->
+  <section class="view" data-view="giochi" hidden>
+    <div class="panel players" id="playersPanel">
+      <h2>Chi gioca?</h2>
+      <div class="player-list" id="playerList"></div>
+      <div class="row"><button class="btn" id="addPlayer" type="button">+ Giocatore</button><button class="btn" id="removePlayer" type="button">− Giocatore</button></div>
+    </div>
+    <div class="game-picker" id="gamePicker">
+      <button class="game-tile" type="button" data-game="bingo"><svg class="tile-ic" viewBox="0 0 64 64" aria-hidden="true"><rect x="8" y="8" width="48" height="48" rx="6" fill="var(--paper)" stroke="var(--ink)" stroke-width="3"/><path d="M24 8v48M40 8v48M8 24h48M8 40h48" stroke="var(--ink)" stroke-width="2"/><circle cx="16" cy="16" r="5" fill="var(--ic-3)"/><circle cx="32" cy="32" r="5" fill="var(--ic-3)"/><circle cx="48" cy="48" r="5" fill="var(--ic-3)"/></svg><b>Bingo da viaggio</b><span>Tocca quello che vedi dal finestrino</span></button>
+      <button class="game-tile" type="button" data-game="quiz"><svg class="tile-ic" viewBox="0 0 64 64" aria-hidden="true"><path d="M10 12h44v32H30l-12 10V44h-8z" fill="var(--ic-4)" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round"/><path d="M27 23a5 5 0 1 1 7 5c-2 1-2 2-2 4" fill="none" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/><circle cx="32" cy="37" r="2" fill="var(--ink)"/></svg><b>Quiz</b><span>Domande per grandi e piccoli</span></button>
+      <button class="game-tile" type="button" data-game="memory"><svg class="tile-ic" viewBox="0 0 64 64" aria-hidden="true"><rect x="8" y="12" width="22" height="30" rx="4" fill="var(--ic-2)" stroke="var(--ink)" stroke-width="3" transform="rotate(-8 19 27)"/><rect x="32" y="18" width="22" height="30" rx="4" fill="var(--ic-1)" stroke="var(--ink)" stroke-width="3" transform="rotate(8 43 33)"/><circle cx="43" cy="33" r="5" fill="var(--ic-3)" stroke="var(--ink)" stroke-width="2"/></svg><b>Memory</b><span>Trova le coppie</span></button>
+      <button class="game-tile" type="button" data-game="tris"><svg class="tile-ic" viewBox="0 0 64 64" aria-hidden="true"><path d="M24 8v48M40 8v48M8 24h48M8 40h48" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/><path d="M11 11l10 10M21 11L11 21" stroke="var(--ic-3)" stroke-width="4" stroke-linecap="round"/><circle cx="32" cy="32" r="5" fill="none" stroke="var(--ic-2)" stroke-width="4"/><path d="M43 43l10 10M53 43L43 53" stroke="var(--ic-3)" stroke-width="4" stroke-linecap="round"/></svg><b>Tris</b><span>Tre in fila vince</span></button>
+    </div>
+    <div class="panel game" id="gameArea" hidden></div>
+  </section>
+
+  <!-- SUONI -->
+  <section class="view" data-view="suoni" hidden>
+    <div class="panel">
+      <div class="row vol">
+        <label class="field grow-f"><span>Volume <output id="volOut"></output></span><input id="volIn" type="range" min="0" max="100" step="5" value="60"></label>
+      </div>
+      <p class="hint">I suoni partono solo quando tocchi un pulsante. Un limitatore evita i picchi improvvisi: il volume non supera mai quello scelto qui.</p>
+    </div>
+    <div class="sound-grid" id="soundGrid"></div>
+  </section>
+
+  <!-- DIARIO -->
+  <section class="view" data-view="diario" hidden>
+    <div class="panel" id="diaryCurrent"></div>
+    <div class="panel" id="diaryDetail" hidden></div>
+    <div class="panel" id="diaryList"></div>
+    <div class="panel">
+      <p class="hint"><b>I tuoi viaggi restano su questo dispositivo.</b> Per spostarli, per esempio dal browser dell'auto al computer, esporta il file e importalo dall'altra parte.</p>
+      <div class="row">
+        <button class="btn" id="exportBtn" type="button">Esporta i viaggi</button>
+        <label class="btn file-btn"><input id="importIn" type="file" accept="application/json,.json">Importa un file</label>
+      </div>
+      <p class="hint" id="ioMsg" aria-live="polite"></p>
+    </div>
+  </section>
+</main>
+
+<dialog class="dlg" id="hereDlg" aria-labelledby="hereTitle">
+  <div class="dlg-head"><h2 id="hereTitle">Sono qui</h2><button class="icon-btn" id="hereClose" type="button" aria-label="Chiudi">✕</button></div>
+  <p class="hint" id="herePos">Cerco la posizione…</p>
+  <label class="field"><span>Dove siamo</span><input id="herePlace" type="text" maxlength="60" list="cityList" placeholder="Una città o un posto"></label>
+  <label class="field"><span>Una nota (facoltativa)</span><input id="hereNote" type="text" maxlength="140" placeholder="Per esempio: gelato buonissimo"></label>
+  <div class="moods" id="moods" role="group" aria-label="Come ci sentiamo"></div>
+  <div class="row"><span class="grow"></span><button class="btn primary big" id="hereSave" type="button">Salva la sosta</button></div>
+</dialog>
+
+<datalist id="cityList"></datalist>
+<div class="toast" id="toast" role="status" hidden></div>
+<script src="citta.js"></script>
+<script src="italia.js"></script>
+<script src="icone.js"></script>
+<script src="quiz-domande.js"></script>
+<script src="app.js"></script>
+<script src="giochi.js"></script>
+<script src="suoni.js"></script>
+<script src="diario.js"></script>
+</body>
+</html>

@@ -27,3 +27,11 @@
   ! Permissions-Policy
   Content-Security-Policy: default-src 'none'; script-src 'self'; worker-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'
   Permissions-Policy: camera=(), microphone=(), geolocation=(self)
+
+# In viaggio: service worker per l'uso senza rete (worker-src), font locale, posizione permessa
+# solo qui (per i km mancanti e il diario), attributi style ammessi.
+/in-viaggio/*
+  ! Content-Security-Policy
+  ! Permissions-Policy
+  Content-Security-Policy: default-src 'none'; script-src 'self'; worker-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'
+  Permissions-Policy: camera=(), microphone=(), geolocation=(self)

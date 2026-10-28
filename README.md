@@ -9,6 +9,7 @@ vive nella sua cartella ed è indipendente dalle altre.
 | Light Show Studio | https://mytesla.fabrizioalampi.it/light-show/ |
 | Wrap Studio | https://mytesla.fabrizioalampi.it/wrap-studio/ |
 | Satelliti sopra di te | https://mytesla.fabrizioalampi.it/satelliti/ |
+| In viaggio | https://mytesla.fabrizioalampi.it/in-viaggio/ |
 
 ## Light Show Studio
 
@@ -95,6 +96,18 @@ npx wrangler secret put N2YO_API_KEY --name tesla-light-show-studio
 oppure dalla dashboard: Workers & Pages, `tesla-light-show-studio`, Settings,
 Variables and Secrets, Add, tipo Secret.
 
+## In viaggio
+
+Per i passeggeri: **Quanto manca?** (strada disegnata con l'auto che avanza,
+traguardi, tappe, +5/-5 minuti, pausa), **Giochi** a turno fino a 4 giocatori
+(bingo da viaggio con 66 voci, quiz con 315 domande originali su 3 livelli,
+memory, tris con computer imbattibile), **Suoni** (19 effetti generati con Web
+Audio, con limitatore) e **Diario dei viaggi** (soste con posizione facoltativa,
+mappa dell'Italia disegnata nell'app, esporta e importa in JSON, dati solo
+nel browser). Funziona senza connessione grazie a un service worker limitato a
+`/in-viaggio/`. Niente lampeggi né suoni automatici: lo schermo dell'auto è
+nel campo visivo di chi guida. Fonti e licenze in `public/in-viaggio/CREDITI.md`.
+
 ## Struttura
 
 ```
@@ -114,6 +127,8 @@ public/
     styles.js            modelli, tavolozze, stili generati via codice, regole sul nome
     app.js               anteprima, export PNG sotto 1 MB, raccolta e ZIP, testo, logo, pennello
     jszip.min.js         copia di JSZip per lo ZIP della raccolta
+  in-viaggio/              home e quattro sezioni; app.js (Quanto manca), giochi.js, suoni.js, diario.js,
+                           sw.js (offline), dati: quiz-domande.js, icone.js, italia.js, citta.js, font/
   satelliti/
     index.html, app.css  pagina e stili (scuro, rosso notte, chiaro)
     app.js               mappa del cielo, conto alla rovescia, passaggi, posizione
