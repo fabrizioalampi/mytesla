@@ -27,7 +27,7 @@ const idb = {
 /* ---------- partenza ---------- */
 function buildCarGrid(){
   $('#carGrid').innerHTML = CAR_ORDER.map(id=>`<button class="carc" role="radio" data-car="${id}" aria-checked="${id===S.car}">${hasImg(id,'front') ? `<img src="img/${id}/icon.webp" alt="" loading="lazy">` : carIcon(id)}<b>${CARS[id].name}</b><small>${CARS[id].years}</small></button>`).join('');
-  $$('#carGrid .carc').forEach(b=>b.onclick=()=>{ setCar(b.dataset.car); $$('#carGrid .carc').forEach(x=>x.setAttribute('aria-checked', String(x===b))); });
+  $$('#carGrid .carc').forEach(b=>b.onclick=()=>{ preloadCar(b.dataset.car); setCar(b.dataset.car); $$('#carGrid .carc').forEach(x=>x.setAttribute('aria-checked', String(x===b))); });
   $('#carPick').innerHTML = CAR_ORDER.map(id=>`<option value="${id}">${CARS[id].name} · ${CARS[id].years}</option>`).join('');
   const closName = {mirror:'specchietti',winF:'finestrini',lift:'portellone o baule',charge:'sportello di ricarica',falcon:'porte Falcon',handF:'maniglie',fbar:'light bar'};
   $('#supTable tbody').innerHTML = CAR_ORDER.map(id=>{ const c=CARS[id]; const cl=Object.keys(closName).filter(k=>c.rows.includes(k)).map(k=>closName[k]); return `<tr><td>${c.name}</td><td>${c.years}</td><td>${cl.join(', ')}</td></tr>`; }).join('');
@@ -132,7 +132,11 @@ const VIEWS_SVG = [['front','Fronte'],['rear','Retro'],['side','Lato'],['top','D
 const isImg = () => hasImg(S.car,'front');
 function viewSVG(car, v, small){ if (hasImg(car,v)) return imgSVG(car,v); return v==='rear'?rearSVG(car) : v==='side'?sideSVG(car) : v==='top'?topSVG(car,small) : frontSVG(car); }
 let painters=[];  /* {P, idx} */
+const preloaded=new Set();
+function preloadCar(car){ if (!hasImg(car,'front') || preloaded.has(car)) return; preloaded.add(car);
+  for (const v of IMG_VIEWS){ const im=new Image(); im.src=CARIMG[car][v].img; } const t=CARIMG[car].rear.trunk; if (t){ const im=new Image(); im.src=t.img; } }
 function buildViews(){
+  preloadCar(S.car);
   const multi=S.nCars>1, VIEWS = isImg() ? VIEWS_IMG : VIEWS_SVG;
   if (!VIEWS.some(([v])=>v===S.view) || (S.view==='group' && !multi)) S.view='front';
   $('#viewTabs').innerHTML = VIEWS.filter(([v])=>v!=='group'||multi).map(([v,l])=>`<button role="tab" data-v="${v}" aria-selected="${v===S.view}">${l}</button>`).join('');
