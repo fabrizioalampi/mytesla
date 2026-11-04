@@ -197,14 +197,14 @@ function carIcon(car){
 function prepSVG(root){
   const q = s => Array.from(root.querySelectorAll(s));
   return {
-    lamps: q('.lp').map(g=>({ch:+g.dataset.ch, on:g.querySelector('.on'), h:g.querySelector('.h')})),
+    lamps: q('.lp').map(g=>({chs:(g.dataset.chs||g.dataset.ch).split(',').map(Number), max:+(g.dataset.max||1), on:g.querySelector('.on'), h:g.querySelector('.h')})),
     bars: q('[data-bar]').map(el=>({ch:+el.dataset.bar, el})),
     glows: q('[data-glow]').map(el=>({chs:el.dataset.glow.split(',').map(Number), el, red:!!el.dataset.red})),
     beams: q('[data-beam]').map(el=>({chs:el.dataset.beam.split(',').map(Number), el})),
     mirs: q('[data-mir]').map(el=>({k:+el.dataset.mir, mode:el.dataset.mode, el})),
     wins: q('[data-win]').map(el=>({k:+el.dataset.win, h:+el.dataset.h||0, mode:el.dataset.mode||'side', el})),
     lifts: q('[data-lift]').map(el=>({mode:el.dataset.lift, el})),
-    charges: q('[data-charge]').map(el=>({mode:el.dataset.charge, led:el.querySelector('.led'), door:el.querySelector('.door')})),
+    charges: q('[data-charge]').map(el=>({mode:el.dataset.charge, led:el.querySelector('.led'), led2:el.querySelector('.led2'), door:el.querySelector('.door')})),
     falcons: q('[data-falcon]').map(el=>({k:+el.dataset.falcon, el})),
     handles: q('[data-handle]').map(el=>({k:+el.dataset.handle, el}))
   };
@@ -214,7 +214,7 @@ function paintSVG(P, show, t){
   const sim=show.sim, rnd=show.rnd, f=Math.max(0, Math.min(sim.frames-1, Math.floor(t*1000/rnd.step)));
   const I=sim.I, NL=sim.NL, pos=sim.pos, D=sim.dancing, NC=sim.NC;
   const li = c => I[f*NL+c];
-  for (const o of P.lamps){ const v=li(o.ch); o.on.setAttribute('opacity', v.toFixed(3)); if (o.h) o.h.setAttribute('opacity', (v*0.95).toFixed(3)); }
+  for (const o of P.lamps){ let v=0; for (const c of o.chs) v=Math.max(v, li(c)); v*=o.max; o.on.setAttribute('opacity', v.toFixed(3)); if (o.h) o.h.setAttribute('opacity', (v*0.95).toFixed(3)); }
   if (rnd.nch===200) for (const o of P.bars){ const v=rnd.buf[f*rnd.nch+o.ch]/255; o.el.setAttribute('opacity',(0.07+0.93*v).toFixed(3)); }
   for (const g of P.glows){ let m=0; for (const c of g.chs) m=Math.max(m, li(c)); g.el.setAttribute('opacity', Math.min(g.red?0.35:0.55, m*(g.red?0.32:0.48)).toFixed(3)); }
   for (const b of P.beams){ let m=0; for (const c of b.chs) m=Math.max(m, li(c)); b.el.setAttribute('opacity', (m*0.9).toFixed(3)); }
@@ -224,15 +224,39 @@ function paintSVG(P, show, t){
     else if (m.mode==='side') m.el.style.transform=`scaleX(${(0.45+0.55*v).toFixed(3)})`;
     else { const dir = m.k===4?-1:1; m.el.style.transform=`rotate(${((1-v)*-62*dir).toFixed(1)}deg)`; } }
   for (const w of P.wins){ const v=p(w.k);
-    if (w.mode==='top'){ w.el.setAttribute('fill', v>0.05?'#04060a':'#7f90a8'); w.el.setAttribute('opacity', v>0.05? (0.6+0.4*v).toFixed(2) : '.55'); }
+    if (w.mode==='img'){ w.el.setAttribute('opacity', (v*0.88).toFixed(3)); }
+    else if (w.mode==='top'){ w.el.setAttribute('fill', v>0.05?'#04060a':'#7f90a8'); w.el.setAttribute('opacity', v>0.05? (0.6+0.4*v).toFixed(2) : '.55'); }
     else w.el.setAttribute('transform', `translate(0 ${(v*w.h).toFixed(2)})`); }
   for (const l of P.lifts){ const v=p(10);
     if (l.mode==='rear') l.el.setAttribute('transform', `translate(0 ${(-v*18).toFixed(2)})`);
+    else if (l.mode==='img') l.el.setAttribute('opacity', Math.min(1, v*1.15).toFixed(3));
     else if (l.mode==='side') l.el.style.transform = `rotate(${(-v*38).toFixed(1)}deg)`;
     else l.el.setAttribute('transform', `translate(0 ${(v*26).toFixed(2)})`); }
   for (const c of P.charges){ const v=p(15), d=dn(15);
     if (c.led){ c.led.setAttribute('opacity', v>0.3?'1':'0'); c.led.setAttribute('fill', d ? `hsl(${(t*240)%360} 100% 60%)` : '#3dff8b'); }
+    if (c.led2){ c.led2.setAttribute('opacity', v>0.3?'1':'0'); c.led2.setAttribute('fill', d ? `hsl(${(t*240)%360} 100% 60%)` : '#3dff8b'); }
     if (c.door) c.door.setAttribute('transform', `translate(${(v*9).toFixed(2)} 0)`); }
   for (const fl of P.falcons){ const v=p(fl.k); fl.el.setAttribute('transform', `translate(0 ${(-v*58).toFixed(2)})`); fl.el.setAttribute('opacity', (1-v*0.35).toFixed(2)); }
   for (const h of P.handles){ const v=p(h.k); h.el.setAttribute('fill', v>0.5?'#c9d3df':'#5a6573'); }
+}
+
+/* ---------- viste con le immagini delle auto (Model 3, 3 Highland, Y, Y Juniper) ---------- */
+const IMG_VIEWS = ['front','rear','side','qf','qr'];
+const hasImg = (car, view) => typeof CARIMG!=='undefined' && CARIMG[car] && CARIMG[car][view];
+function imgSVG(car, view){
+  const V = CARIMG[car][view], W=V.w, H=V.h, glow = Math.round(W/150);
+  const lamp = l => { const col = LCOL[l.c], stroke = l.m==='stroke';
+    const attrs = stroke ? `fill="none" stroke="${col}" stroke-width="${Math.round(W/170)}" stroke-linejoin="round"` : `fill="${col}"`;
+    return `<g class="lp" data-chs="${l.ch.join(',')}" data-max="${l.c==='rd'?0.6:1}"><path class="h" d="${l.d}" ${attrs} filter="url(#lsImgGlow)" opacity="0"/><path class="on" d="${l.d}" ${attrs} opacity="0"/></g>`; };
+  const tr = V.trunk;
+  const ground = (view==='front'||view==='rear') ? `<ellipse data-glow="${view==='front'?'0,1,2,3,14,15':'24,25,26'}" ${view==='rear'?'data-red="1"':''} cx="${W/2}" cy="${H*0.97}" rx="${W*0.46}" ry="${H*0.05}" fill="${view==='front'?'#cfe2ff':'#ff2a36'}" opacity="0" filter="url(#lsGlow2)"/>` : '';
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+    <defs><filter id="lsImgGlow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${glow}"/></filter></defs>
+    ${ground}
+    <image href="${V.img}" width="${W}" height="${H}" class="carimg"/>
+    ${tr ? `<image data-lift="img" href="${tr.img}" x="${tr.x}" y="${tr.y}" width="${tr.w}" height="${tr.h}" preserveAspectRatio="none" opacity="0" class="carimg trunk"/>` : ''}
+    ${V.glass.map(g=>`<path data-win="${g.k}" data-mode="img" d="${g.d}" fill="#020305" opacity="0"/>`).join('')}
+    ${V.charge ? `<g data-charge="img"><path class="led" d="${V.charge.d}" fill="#3dff8b" opacity="0" filter="url(#lsImgGlow)"/><path class="led2" d="${V.charge.d}" fill="#3dff8b" opacity="0"/></g>` : ''}
+    ${V.lamps.map(lamp).join('')}
+  </svg>`;
 }

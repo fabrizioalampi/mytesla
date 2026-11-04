@@ -26,7 +26,7 @@ const idb = {
 
 /* ---------- partenza ---------- */
 function buildCarGrid(){
-  $('#carGrid').innerHTML = CAR_ORDER.map(id=>`<button class="carc" role="radio" data-car="${id}" aria-checked="${id===S.car}">${carIcon(id)}<b>${CARS[id].name}</b><small>${CARS[id].years}</small></button>`).join('');
+  $('#carGrid').innerHTML = CAR_ORDER.map(id=>`<button class="carc" role="radio" data-car="${id}" aria-checked="${id===S.car}">${hasImg(id,'front') ? `<img src="img/${id}/icon.webp" alt="" loading="lazy">` : carIcon(id)}<b>${CARS[id].name}</b><small>${CARS[id].years}</small></button>`).join('');
   $$('#carGrid .carc').forEach(b=>b.onclick=()=>{ setCar(b.dataset.car); $$('#carGrid .carc').forEach(x=>x.setAttribute('aria-checked', String(x===b))); });
   $('#carPick').innerHTML = CAR_ORDER.map(id=>`<option value="${id}">${CARS[id].name} · ${CARS[id].years}</option>`).join('');
   const closName = {mirror:'specchietti',winF:'finestrini',lift:'portellone o baule',charge:'sportello di ricarica',falcon:'porte Falcon',handF:'maniglie',fbar:'light bar'};
@@ -127,10 +127,14 @@ function doRegen(){
 }
 
 /* ---------- viste ---------- */
-const VIEWS = [['front','Fronte'],['rear','Retro'],['side','Lato'],['top','Dall\'alto'],['all','Tutte'],['group','Gruppo']];
+const VIEWS_IMG = [['front','Fronte'],['rear','Retro'],['side','Lato'],['qf','3/4 davanti'],['qr','3/4 dietro'],['all','Tutte'],['group','Gruppo']];
+const VIEWS_SVG = [['front','Fronte'],['rear','Retro'],['side','Lato'],['top','Dall\'alto'],['all','Tutte'],['group','Gruppo']];
+const isImg = () => hasImg(S.car,'front');
+function viewSVG(car, v, small){ if (hasImg(car,v)) return imgSVG(car,v); return v==='rear'?rearSVG(car) : v==='side'?sideSVG(car) : v==='top'?topSVG(car,small) : frontSVG(car); }
 let painters=[];  /* {P, idx} */
 function buildViews(){
-  const multi=S.nCars>1;
+  const multi=S.nCars>1, VIEWS = isImg() ? VIEWS_IMG : VIEWS_SVG;
+  if (!VIEWS.some(([v])=>v===S.view) || (S.view==='group' && !multi)) S.view='front';
   $('#viewTabs').innerHTML = VIEWS.filter(([v])=>v!=='group'||multi).map(([v,l])=>`<button role="tab" data-v="${v}" aria-selected="${v===S.view}">${l}</button>`).join('');
   $$('#viewTabs button').forEach(b=>b.onclick=()=>{ S.view=b.dataset.v; saveSettings(); buildViews(); });
   const cs=$('#carSel'); cs.hidden = !multi || S.view==='group';
@@ -140,12 +144,13 @@ function buildViews(){
   const car=S.car;
   if (S.view==='all'){
     cv.className='canvas grid4';
-    cv.innerHTML = [['FRONTE',frontSVG(car)],['RETRO',rearSVG(car)],['LATO',sideSVG(car)],['DALL\'ALTO',topSVG(car,true)]].map(([l,s])=>`<div class="cell"><label>${l}</label>${s}</div>`).join('');
+    const four = isImg() ? [['3/4 DAVANTI','qf'],['3/4 DIETRO','qr'],['FRONTE','front'],['RETRO','rear']] : [['FRONTE','front'],['RETRO','rear'],['LATO','side'],['DALL\'ALTO','top']];
+    cv.innerHTML = four.map(([l,v])=>[l,viewSVG(car,v,true)]).map(([l,s])=>`<div class="cell"><label>${l}</label>${s}</div>`).join('');
     $$('#canvas .cell').forEach(c=>painters.push({P:prepSVG(c), idx:()=>S.sel}));
   } else if (S.view==='group' && multi){
     cv.innerHTML = `<div class="group" id="group"></div>`; layoutGroup();
   } else {
-    const svg = S.view==='rear'?rearSVG(car) : S.view==='side'?sideSVG(car) : S.view==='top'?topSVG(car) : frontSVG(car);
+    const svg = viewSVG(car, S.view);
     cv.innerHTML = `<div class="one">${svg}</div>`; painters.push({P:prepSVG(cv), idx:()=>S.sel});
   }
   paint();
@@ -153,6 +158,17 @@ function buildViews(){
 function layoutGroup(){
   const g=$('#group'); if (!g) return; const n=S.nCars, W=g.clientWidth||800, H=g.clientHeight||400;
   const arc = S.layout==='arc';
+  if (isImg()){
+    const V=CARIMG[S.car].front, ar=V.h/V.w;
+    let cw = Math.min(W/n*0.9, (H*0.8)/ar);
+    g.innerHTML = Array.from({length:n},(_,i)=>{
+      const u = n===1?0.5:i/(n-1), t=Math.abs(2*u-1), f=1-Math.sqrt(Math.max(0,1-t*t)), k = arc ? 0.72+0.28*f : 1, w=cw*k, h=w*ar;
+      const x=(i+0.5)*W/n - w/2, y = arc ? H*0.06 + (H*0.9-h)*f : (H-h)/2;
+      return `<div class="gcar${i===S.sel?' sel':''}" data-i="${i}" style="left:${x.toFixed(1)}px;top:${y.toFixed(1)}px;width:${w.toFixed(1)}px;height:${h.toFixed(1)}px;z-index:${Math.round(k*10)}">${imgSVG(S.car,'front')}<b>${i+1}</b></div>`;
+    }).join('');
+    Array.from(g.querySelectorAll('.gcar')).forEach(el=>{ const i=+el.dataset.i; painters.push({P:prepSVG(el), idx:()=>i}); el.onclick=()=>{ S.sel=i; Array.from(g.querySelectorAll('.gcar')).forEach(x=>x.classList.toggle('sel', x===el)); }; });
+    return;
+  }
   const cw = arc ? Math.min(W/(n+2.2), H*0.2) : Math.min(W/n*0.62, H*0.42), ch = cw*2.05;
   const cy = H - ch*0.5 - 14, rx = W/2 - ch*0.55 - 8, ry = Math.max(40, cy - ch*0.55 - 8);
   g.innerHTML = Array.from({length:n},(_,i)=>{

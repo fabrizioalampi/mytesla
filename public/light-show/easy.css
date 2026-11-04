@@ -197,3 +197,10 @@ dialog::backdrop{background:rgba(0,0,0,.55)}
 .lp .on,.lp .h{transition:none}
 
 @media (max-width:560px){ .canvas{aspect-ratio:4/3.2} }
+
+/* immagini delle auto, di notte */
+.carimg{filter:brightness(.34) contrast(1.15) saturate(.8)}
+.carimg.trunk{filter:brightness(.9)}
+.carc img{width:100%;height:46px;object-fit:contain;margin-bottom:6px;opacity:.75}
+.carc[aria-checked="true"] img{opacity:1}
+.group .gcar svg{width:100%;height:100%}
