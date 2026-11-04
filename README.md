@@ -13,13 +13,21 @@ vive nella sua cartella ed è indipendente dalle altre.
 
 ## Light Show Studio
 
-Carichi un brano, scegli quali luci e chiusure animare e il generatore costruisce
-la coreografia sui beat. Poi la ritocchi sulla timeline, controlli i limiti di
-Tesla nella scheda **Verifica** e scarichi uno ZIP con la cartella `LightShow`
-pronta per la chiavetta USB.
+Due modalità nella stessa app:
 
-Tutto gira nel browser: niente account, niente server, la musica non lascia il
-tuo computer.
+- **Guidata** (`/light-show/`, file `index.html`, `easy.js`, `easy.css`, `drums.js`,
+  `cars.js`): scegli il modello, carichi un brano e lo show si genera subito.
+  Il browser trova tempo, cassa, rullante e hi-hat, divide il brano in parti
+  calme, medie e forti e riconosce build-up e drop. Anteprima da fronte, retro,
+  lato, dall'alto o tutte insieme; densità dei lampi con valore consigliato per
+  brano; interruttori per luci e chiusure; da 2 a 8 auto in fila o a semicerchio
+  (le luci si rincorrono, un file per auto). Export ZIP con la guida per la
+  chiavetta (computer, telefono, TeslaCam, più auto), progetto `.lsshow` con brano
+  e impostazioni, e passaggio all'editor avanzato.
+- **Editor avanzato** (`/light-show/editor.html`, file `app.js`, `app.css`): la
+  timeline effetto per effetto descritta qui sotto.
+
+Le due modalità condividono `core.js` (canali, render, `.fseq`, simulazione).
 
 ### Cosa fa
 

@@ -4,100 +4,204 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Light Show Studio</title>
-<meta name="description" content="Crea light show per auto Tesla nel browser: timeline sulla musica, anteprima, coreografia automatica ed export pronto per la chiavetta USB.">
+<meta name="description" content="Trasforma qualsiasi brano in un light show per la tua Tesla: scegli l'auto, carica la musica, lo show nasce sul ritmo. Gratis, nel browser, pronto per la chiavetta USB.">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="easy.css">
 </head>
 <body>
-<div class="app">
-  <header class="top gut">
-    <a class="btn small" href="/" aria-label="Torna a tutte le app">← App</a>
-    <div class="brand">
-      <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="8" fill="var(--accent)"/><path d="M7 13c3-3 7-4 10-3l-1 6c-3 0-6 0-9-3z" fill="var(--accent-fg)"/><path d="M19 11l7-2M19.5 14l7 0M19 17l7 2" stroke="var(--accent-fg)" stroke-width="2" stroke-linecap="round"/></svg>
-      <div><b>Light Show Studio</b><small>.fseq per Tesla · v2 uncompressed</small></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <filter id="lsGlow" x="-120%" y="-120%" width="340%" height="340%"><feGaussianBlur stdDeviation="5"/></filter>
+    <filter id="lsGlow2" x="-60%" y="-250%" width="220%" height="600%"><feGaussianBlur stdDeviation="10"/></filter>
+    <linearGradient id="lsBody" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b323d"/><stop offset="1" stop-color="#141920"/></linearGradient>
+    <linearGradient id="lsBodyS" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#323a46"/><stop offset=".55" stop-color="#1d232c"/><stop offset="1" stop-color="#11151b"/></linearGradient>
+    <linearGradient id="lsGlass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1c2533"/><stop offset="1" stop-color="#0a0e14"/></linearGradient>
+    <linearGradient id="lsBeam" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#eaf3ff" stop-opacity=".75"/><stop offset="1" stop-color="#eaf3ff" stop-opacity="0"/></linearGradient>
+    <linearGradient id="lsRedBeam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff2a36" stop-opacity=".6"/><stop offset="1" stop-color="#ff2a36" stop-opacity="0"/></linearGradient>
+  </defs>
+</svg>
+
+<header class="top gut">
+  <a class="btn small ghost" href="/" aria-label="Torna a tutte le app">← App</a>
+  <a class="brand" href="./">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="8" fill="var(--accent)"/><path d="M7 13c3-3 7-4 10-3l-1 6c-3 0-6 0-9-3z" fill="var(--accent-fg)"/><path d="M19 11l7-2M19.5 14l7 0M19 17l7 2" stroke="var(--accent-fg)" stroke-width="2" stroke-linecap="round"/></svg>
+    <span><b>Light Show Studio</b><small>Dal brano allo show, in automatico</small></span>
+  </a>
+  <span class="grow"></span>
+  <a class="btn small ghost" href="#come">Come funziona</a>
+  <a class="btn small ghost" href="#faq">Domande</a>
+  <a class="btn small" href="editor.html" title="Timeline effetto per effetto, come in xLights">Editor avanzato</a>
+</header>
+
+<main>
+  <!-- ===== Partenza: auto + brano ===== -->
+  <section class="start gut" id="start">
+    <div class="hero">
+      <p class="kicker">Gratis · Nel browser · Senza account</p>
+      <h1>Il tuo brano.<br><span>Le luci della tua Tesla.</span></h1>
+      <p class="lede">Scegli l'auto e carica una canzone: lo show nasce da solo sul ritmo, con cassa, rullante, hi-hat, build-up e drop. Lo guardi, lo ritocchi e lo scarichi pronto per la chiavetta USB.</p>
     </div>
-    <input class="name" id="projName" aria-label="Nome dello show" maxlength="60">
-    <label class="btn" for="audioIn"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 12V3l7-1.5v9"/><circle cx="4" cy="12" r="2"/><circle cx="11" cy="10.5" r="2"/></svg>Carica musica</label>
-    <input type="file" id="audioIn" accept="audio/*,.mp3,.wav">
-    <details class="menu" id="projMenu">
-      <summary class="btn">Progetto</summary>
-      <div class="menu-pop" role="menu">
-        <button id="mSave" role="menuitem">Salva progetto (.json)</button>
-        <label for="projIn" style="all:unset;cursor:pointer;padding:8px 10px;border-radius:6px" class="mlabel">Apri progetto (.json)</label>
-        <label for="fseqIn" style="all:unset;cursor:pointer;padding:8px 10px;border-radius:6px" class="mlabel">Importa uno show .fseq</label>
-        <hr>
-        <button id="mNew" role="menuitem">Svuota la timeline</button>
-      </div>
-    </details>
-    <input type="file" id="projIn" accept=".json,application/json">
-    <input type="file" id="fseqIn" accept=".fseq">
-    <span class="spacer-f"></span>
-    <button class="btn primary" id="exportBtn"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 2v8M4.5 6.5 8 10l3.5-3.5M3 13h10"/></svg>Esporta per USB</button>
-  </header>
-  <div class="banner gut" id="banner" hidden></div>
 
-  <div class="main">
-    <section class="upper gut">
-      <div class="stage" aria-label="Anteprima del veicolo">
-        <div class="stage-head">
-          <div class="clock" id="clock">0:00.00 <span>/ 0:00</span></div>
-          <span class="chip" id="bpmChip">-- BPM</span>
-          <span class="chip demo" id="demoChip" hidden>Brano demo</span>
-          <span class="chip" id="chChip">48 canali</span>
+    <div class="steps-card">
+      <div class="step-h"><span class="num">1</span><h2>Che Tesla hai?</h2></div>
+      <div class="cars" id="carGrid" role="radiogroup" aria-label="Modello"></div>
+
+      <div class="step-h"><span class="num">2</span><h2>Scegli il brano</h2></div>
+      <label class="drop" id="dropZone" for="audioIn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>
+        <b>Trascina qui una canzone</b>
+        <span>oppure tocca per sceglierla · MP3, WAV, M4A, AAC, OGG</span>
+      </label>
+      <input type="file" id="audioIn" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac" hidden>
+      <div class="alt">
+        <button class="btn" id="demoBtn">Prova col brano demo</button>
+        <label class="btn" for="projIn">Apri un progetto salvato</label>
+        <input type="file" id="projIn" accept=".lsshow,.zip" hidden>
+      </div>
+      <p class="privacy"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></svg>La musica resta sul tuo dispositivo: l'analisi gira nel browser, niente viene caricato.</p>
+    </div>
+  </section>
+
+  <!-- ===== Studio ===== -->
+  <section class="studio gut" id="studio" hidden>
+    <div class="stage-wrap">
+      <div class="stage" id="stage">
+        <div class="stage-top">
+          <div class="views" role="tablist" aria-label="Inquadratura" id="viewTabs"></div>
+          <div class="carsel" id="carSel" hidden></div>
         </div>
-        <div class="views">
-          <div class="view"><label>FRONTE</label><svg id="svgFront" viewBox="0 0 420 220" preserveAspectRatio="xMidYMid meet"></svg></div>
-          <div class="view"><label>RETRO</label><svg id="svgRear" viewBox="0 0 420 220" preserveAspectRatio="xMidYMid meet"></svg></div>
+        <div class="canvas" id="canvas"></div>
+        <div class="busy" id="busy" hidden><span class="spin"></span><b id="busyMsg">Ascolto il brano…</b></div>
+      </div>
+      <div class="transport">
+        <button class="play" id="playBtn" aria-label="Riproduci"><svg viewBox="0 0 16 16" fill="currentColor" id="playIco"><path d="M4 2.5v11l9-5.5z"/></svg></button>
+        <div class="tl">
+          <canvas id="wave" height="64" aria-label="Forma d'onda: tocca per spostarti"></canvas>
+          <div class="tl-meta"><span id="clock">0:00</span><span class="legend"><i class="l0"></i>calmo <i class="l1"></i>medio <i class="l2"></i>forte <i class="lb"></i>build-up <i class="ld"></i>drop</span><span id="total">0:00</span></div>
         </div>
-        <div class="clos" id="closStrip"></div>
+      </div>
+    </div>
+
+    <aside class="panel">
+      <div class="card song">
+        <div class="song-row">
+          <div class="song-ico" aria-hidden="true">♪</div>
+          <div class="song-t"><b id="songName">—</b><small id="songMeta"></small></div>
+          <label class="btn small" for="audioIn">Cambia</label>
+        </div>
+        <div class="stats" id="stats"></div>
       </div>
 
-      <aside class="side">
-        <div class="tabs" role="tablist">
-          <button role="tab" data-tab="tools" aria-selected="true">Strumenti</button>
-          <button role="tab" data-tab="insp" aria-selected="false">Effetto</button>
-          <button role="tab" data-tab="gen" aria-selected="false">Genera</button>
-          <button role="tab" data-tab="check" aria-selected="false">Verifica<span class="dot" id="checkDot"></span></button>
-        </div>
-        <div class="pane" id="pane-tools">
-          <div class="sec"><h3>Luci</h3><div class="tools" data-cat="light"></div></div>
-          <div class="sec"><h3>Chiusure</h3><div class="tools" data-cat="closure"></div></div>
-          <div class="sec"><h3>Light bar Cybertruck</h3><div class="tools" data-cat="bar"></div></div>
-          <div class="sec"><h3>Interni RGB</h3><div class="tools" data-cat="rgb"></div></div>
-          <p class="hint">Trascina su una riga della timeline per disegnare un effetto con lo strumento scelto. Tasti come in xLights: <kbd>F</kbd> accendi, <kbd>E</kbd> <kbd>D</kbd> <kbd>C</kbd> accendi in 0,5/1/2 s, <kbd>W</kbd> <kbd>S</kbd> <kbd>X</kbd> spegni in 0,5/1/2 s, <kbd>Q</kbd> apri, <kbd>A</kbd> danza, <kbd>Z</kbd> chiudi. Con effetti selezionati, il tasto cambia il loro tipo.</p>
-        </div>
-        <div class="pane" id="pane-insp" hidden></div>
-        <div class="pane" id="pane-gen" hidden></div>
-        <div class="pane" id="pane-check" hidden></div>
-      </aside>
-    </section>
-
-    <section class="tl">
-      <div class="tl-bar gut">
-        <button class="btn small" id="playBtn" aria-label="Riproduci"><svg viewBox="0 0 16 16" fill="currentColor" id="playIco"><path d="M4 2.5v11l9-5.5z"/></svg></button>
-        <button class="btn small" id="homeBtn" aria-label="Torna all'inizio"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 3h2v10H3zM14 3v10L6 8z"/></svg></button>
-        <span class="time" id="tlTime">0:00.00</span>
-        <span class="sep"></span>
-        <button class="btn small" id="zoomOut" aria-label="Riduci zoom">−</button>
-        <button class="btn small" id="zoomIn" aria-label="Aumenta zoom">+</button>
-        <button class="btn small" id="zoomFit">Adatta</button>
-        <span class="sep"></span>
-        <button class="btn small on" id="snapBtn" aria-pressed="true">Aggancia al beat</button>
-        <button class="btn small on" id="followBtn" aria-pressed="true">Segui</button>
-        <button class="btn small rec" id="recBtn" aria-pressed="false"><span class="rd"></span>Registra live</button>
-        <button class="btn small" id="undoBtn" aria-label="Annulla">↶</button>
-        <button class="btn small" id="redoBtn" aria-label="Ripeti">↷</button>
-        <span class="help" id="tlHelp">Spazio: play · Canc: elimina · Ctrl+C/V/D: copia, incolla, duplica · Ctrl+rotella: zoom</span>
+      <div class="card">
+        <label class="lbl" for="carPick">Auto</label>
+        <select id="carPick"></select>
       </div>
-      <div class="scroller" id="scroller"><div class="spacer" id="spacer"><canvas id="cv"></canvas></div></div>
-    </section>
+
+      <div class="card">
+        <div class="lbl-row"><span class="lbl">Densità dei lampi</span><button class="link" id="densReset" hidden>Torna alla consigliata</button></div>
+        <div class="dens">
+          <input type="range" id="dens" min="1" max="5" step="1" value="3" aria-describedby="densTxt">
+          <div class="dens-ticks" id="densTicks"></div>
+        </div>
+        <p class="hint" id="densTxt"></p>
+      </div>
+
+      <div class="card">
+        <span class="lbl">Cosa si muove</span>
+        <div class="parts" id="parts"></div>
+      </div>
+
+      <div class="card">
+        <div class="lbl-row"><span class="lbl">Più auto insieme</span><span class="hint">fino a 8</span></div>
+        <div class="multi">
+          <div class="stepper"><button id="nMinus" aria-label="Una auto in meno">−</button><output id="nCars">1</output><button id="nPlus" aria-label="Una auto in più">+</button></div>
+          <div class="seg" id="layoutSeg" role="radiogroup" aria-label="Disposizione">
+            <button role="radio" data-v="row" aria-checked="true">In fila</button>
+            <button role="radio" data-v="arc" aria-checked="false">Semicerchio</button>
+          </div>
+        </div>
+        <p class="hint" id="multiTxt">Una sola auto. Con più auto le luci si rincorrono da una all'altra e i drop esplodono insieme.</p>
+      </div>
+
+      <div class="card warn" id="issues" hidden></div>
+
+      <div class="actions">
+        <button class="btn primary big" id="exportBtn"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 2v8M4.5 6.5 8 10l3.5-3.5M3 13h10"/></svg>Scarica per la chiavetta</button>
+        <div class="row2">
+          <button class="btn" id="saveBtn">Salva progetto</button>
+          <button class="btn" id="editorBtn">Ritocca nell'editor</button>
+        </div>
+        <button class="link" id="restartBtn">Ricomincia con un altro brano</button>
+      </div>
+    </aside>
+  </section>
+
+  <!-- ===== Spiegazioni ===== -->
+  <section class="info gut" id="come">
+    <h2>Come si fa un light show per Tesla</h2>
+    <ol class="how">
+      <li><b>Scegli l'auto</b><span>Ogni modello ha luci e chiusure diverse: lo show usa solo quello che la tua auto sa fare.</span></li>
+      <li><b>Carica il brano</b><span>Il browser trova il tempo, la cassa, il rullante e gli hi-hat, poi le parti calme, i build-up e i drop.</span></li>
+      <li><b>Guarda e ritocca</b><span>Fronte, retro, lato, dall'alto o tutte insieme. Cambi la densità dei lampi e cosa si muove: lo show si rifà all'istante.</span></li>
+      <li><b>Mettilo in auto</b><span>Scarichi uno ZIP con la cartella <code>LightShow</code>, la copi su una chiavetta, e in auto apri Toybox → Light Show.</span></li>
+    </ol>
+
+    <h2>Cosa fa</h2>
+    <div class="feat">
+      <div><b>Sul ritmo, da solo</b><span>Cassa sui fari, rullante sulle frecce, hi-hat sui ripetitori laterali. Nei tratti calmi le luci respirano.</span></div>
+      <div><b>Build-up e drop</b><span>Prima del drop i lampi accelerano, poi un attimo di buio e al drop si accende tutto.</span></div>
+      <div><b>Finestrini, portellone, specchietti</b><span>Ballano sui momenti forti, entro i limiti di comandi che Tesla impone a ogni chiusura.</span></div>
+      <div><b>Da 2 a 8 auto</b><span>Un file per auto: le luci si rincorrono lungo la fila o il semicerchio. Una chiavetta per auto, avvio programmato alla stessa ora.</span></div>
+      <div><b>Editor effetto per effetto</b><span>Se vuoi di più, apri lo show nell'editor avanzato: timeline, registrazione live, 48 o 200 canali.</span></div>
+      <div><b>Progetto salvabile</b><span>Un unico file con brano e impostazioni: lo riapri quando vuoi e riparti da dove eri.</span></div>
+    </div>
+
+    <h2>Auto supportate</h2>
+    <div class="table-wrap"><table class="sup" id="supTable"><thead><tr><th>Modello</th><th>Anni</th><th>Chiusure animate</th></tr></thead><tbody></tbody></table></div>
+    <p class="hint">Le luci che la tua versione non ha (per esempio fendinebbia o retronebbia, che dipendono dal mercato) restano semplicemente spente.</p>
+
+    <h2 id="usb">La chiavetta USB</h2>
+    <div class="feat two">
+      <div><b>Formato</b><span>exFAT o FAT32. La cartella <code>LightShow</code> va nella radice, con il file <code>.fseq</code> e il <code>.wav</code> dallo stesso nome.</span></div>
+      <div><b>E la TeslaCam?</b><span>Se la chiavetta della dashcam è sempre attaccata, usa un hub USB con due chiavette, oppure dividi una chiavetta in due partizioni exFAT (la divisione cancella tutto quello che c'è sopra).</span></div>
+    </div>
+
+    <h2 id="faq">Domande</h2>
+    <div class="faq">
+      <details><summary>È davvero gratis?</summary><p>Sì. Niente account, niente installazione, niente abbonamento. Gira tutto nel tuo browser.</p></details>
+      <details><summary>La mia musica viene caricata da qualche parte?</summary><p>No. Il brano viene letto e analizzato sul tuo dispositivo. Nel progetto salvato e nello ZIP finisce solo sul tuo disco.</p></details>
+      <details><summary>Che formato esce?</summary><p>Un file <code>.fseq</code> versione 2 non compresso e l'audio in <code>.wav</code> a 44,1 kHz, come chiede Tesla. Non serve xLights.</p></details>
+      <details><summary>Cosa cambia la densità dei lampi?</summary><p>Quanti colpi di batteria diventano lampi. A 1 solo le casse principali, a 5 anche ogni hi-hat. Per ogni brano proponiamo un valore in base a tempo e ritmo, ma puoi cambiarlo.</p></details>
+      <details><summary>Come faccio uno show con più auto?</summary><p>Scegli quante auto e come sono disposte, poi scarica: lo ZIP contiene una cartella per auto. Metti ogni cartella <code>LightShow</code> su una chiavetta diversa, parcheggia le auto nell'ordine indicato e su ognuna usa "Programma show" alla stessa ora.</p></details>
+      <details><summary>Posso preparare la chiavetta col telefono?</summary><p>Su Android serve un adattatore OTG e un'app di file per estrarre lo ZIP e copiare la cartella. Su iPhone con USB-C apri lo ZIP in File e copia la cartella sulla chiavetta, già formattata dal computer. Le istruzioni passo per passo sono nella finestra di download.</p></details>
+      <details><summary>Le chiusure si possono rovinare?</summary><p>Tesla limita quante volte ogni chiusura può muoversi in uno show, e l'auto ignora i comandi oltre il limite. Lo show automatico resta sotto questi limiti; se esageri nell'editor avanzato, la scheda Verifica te lo segnala.</p></details>
+      <details><summary>Perché lo show non parte?</summary><p>Di solito il nome: <code>.fseq</code> e <code>.wav</code> devono chiamarsi uguale e stare dentro <code>LightShow</code>, nella radice della chiavetta. Controlla anche che l'auto sia in Park e che la chiavetta sia exFAT o FAT32.</p></details>
+    </div>
+    <p class="fine">Progetto indipendente, non affiliato a Tesla, Inc. I file sono forniti così come sono. Avvia gli show solo ad auto parcheggiata, in un luogo sicuro e nel rispetto delle regole locali.</p>
+  </section>
+</main>
+
+<dialog id="dlg" aria-labelledby="dlgTitle">
+  <div class="dlg-in">
+    <div class="dlg-h"><h2 id="dlgTitle">Scaricato. Ora la chiavetta</h2><button class="x" id="dlgClose" aria-label="Chiudi">✕</button></div>
+    <p class="dlg-file" id="dlgFile"></p>
+    <div class="seg tabs" id="dlgTabs" role="tablist">
+      <button role="tab" data-t="pc" aria-selected="true">Dal computer</button>
+      <button role="tab" data-t="phone" aria-selected="false">Dal telefono</button>
+      <button role="tab" data-t="cam" aria-selected="false">Con la TeslaCam</button>
+      <button role="tab" data-t="multi" aria-selected="false" id="dlgMultiTab" hidden>Più auto</button>
+    </div>
+    <div class="dlg-b" id="dlgBody"></div>
   </div>
-</div>
+</dialog>
+
 <div class="toast" id="toast" role="status" hidden></div>
 <script src="jszip.min.js"></script>
 <script src="core.js"></script>
-<script src="app.js"></script>
+<script src="drums.js"></script>
+<script src="cars.js"></script>
+<script src="easy.js"></script>
 </body>
 </html>
