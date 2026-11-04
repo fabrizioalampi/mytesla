@@ -106,8 +106,14 @@ function multiChanged(){ if (S.sel>=S.nCars) S.sel=0; if (S.nCars>1 && S.view!==
 /* ---------- generazione ---------- */
 let genT=0;
 function regenerate(now){
-  if (!A) return; clearTimeout(genT);
-  genT = setTimeout(()=>{
+  if (!A) return; clearTimeout(genT); genPending=true;
+  genT = setTimeout(doRegen, now?0:120);
+}
+let genPending=false;
+function flushRegen(){ if (genPending || shows.length!==S.nCars){ clearTimeout(genT); doRegen(); } }
+function doRegen(){
+  {
+    genPending=false;
     shows=[]; const d=density();
     for (let i=0;i<S.nCars;i++){
       const effects = autoShow(A, dur, {car:S.car, parts:S.parts, density:d, carIdx:i, nCars:S.nCars, uid});
@@ -117,7 +123,7 @@ function regenerate(now){
     const iss = shows.flatMap((s,i)=>s.issues.map(x=>(S.nCars>1?`Auto ${i+1} · `:'')+x));
     $('#issues').hidden=!iss.length; $('#issues').innerHTML = iss.length ? `<b>Oltre i limiti di Tesla</b><br>${iss.map(esc).join('<br>')}` : '';
     paint(); drawWave();
-  }, now?0:120);
+  }
 }
 
 /* ---------- viste ---------- */
@@ -214,6 +220,7 @@ async function wavBytes(){
 function download(name, blob){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 4000); }
 $('#exportBtn').onclick = async ()=>{
   if (!A || typeof JSZip==='undefined'){ toast('Il modulo ZIP non si è caricato: ricarica la pagina.'); return; }
+  flushRegen();
   const btn=$('#exportBtn'), old=btn.innerHTML; btn.disabled=true; btn.lastChild.textContent=' Preparo i file…';
   try {
     const base=fileBase(song.name), zip=new JSZip(), wav=await wavBytes(), N=S.nCars;
@@ -293,6 +300,7 @@ $('#editorBtn').onclick = async ()=>{
   if (!song) return;
   let prev=null; try { prev=JSON.parse(localStorage.getItem(EDITOR_KEY)||'null'); } catch(e){}
   if (prev && Array.isArray(prev.effects) && prev.effects.length && prev.name!==song.name && !confirm(`Nell'editor avanzato c'è già lo show "${prev.name}". Sostituirlo con questo?`)) return;
+  flushRegen();
   const i = S.nCars>1 ? S.sel : 0;
   /* il demo dell'editor è un altro brano: gli passo il nostro come file audio */
   let blob = song.blob;
