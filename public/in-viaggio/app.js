@@ -84,8 +84,12 @@ const IV = (() => {
     {id:'arrivati', test:s => s.left <= 0, msg:'Siamo arrivati!'}
   ];
 
-  /* ---------- strada disegnata ---------- */
+  /* ---------- strada disegnata ----------
+     Il riferimento è il MUSO dell'auto: parte dal cerchio di partenza e tocca l'asta della
+     bandierina esattamente all'arrivo, quindi lo spazio che resta fino alla bandierina è
+     sempre proporzionale al tempo che manca. */
   const ROAD = 'M40 190 C 200 190, 220 80, 380 90 S 600 210, 720 170 S 880 70, 960 80';
+  const CAR_HALF = 30;   // metà lunghezza dell'auto, in unità della strada
   function drawRoad(box, s, t, mini){
     const stops = (t.stops || []).filter(x => x.nome);
     box.innerHTML = `
@@ -96,9 +100,7 @@ const IV = (() => {
       <path d="${ROAD}" fill="none" stroke="var(--paper)" stroke-width="3" stroke-dasharray="14 16" stroke-linecap="round"/>
       <path class="road-done" d="${ROAD}" fill="none" stroke="var(--accent)" stroke-width="7" stroke-linecap="round" opacity=".55"/>`;
     const path = box.querySelector('.road-bg'), L = path.getTotalLength();
-    const done = box.querySelector('.road-done'); done.setAttribute('stroke-dasharray', `${L * s.frac} ${L}`);
     const pt = f => path.getPointAtLength(L * f);
-    // partenza e arrivo
     const a = pt(0), b = pt(1);
     box.insertAdjacentHTML('beforeend', `<circle cx="${a.x}" cy="${a.y}" r="12" fill="var(--paper)" stroke="var(--ink)" stroke-width="4"/>
       <g transform="translate(${b.x} ${b.y - 56})"><path d="M0 56V0" stroke="var(--ink)" stroke-width="4"/><path d="M0 2h34l-8 10 8 10H0z" fill="var(--ic-3)" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round"/></g>`);
@@ -106,21 +108,39 @@ const IV = (() => {
       const label = (x, y, txt, anchor) => { const tEl = document.createElementNS('http://www.w3.org/2000/svg', 'text'); tEl.setAttribute('x', x); tEl.setAttribute('y', y); tEl.setAttribute('text-anchor', anchor); tEl.setAttribute('font-size', '22'); tEl.setAttribute('font-weight', '800'); tEl.setAttribute('fill', 'var(--ink)'); tEl.textContent = txt; box.appendChild(tEl); };
       if (t.from) label(a.x, a.y + 44, t.from, 'start');
       if (t.to) label(b.x, b.y + 40, t.to, 'end');
-      // tappe: all'orario indicato, oppure distribuite lungo la strada
+      // tappe: all'orario indicato, oppure distribuite lungo la strada; il muso dell'auto ci arriva a quell'ora
       stops.forEach((st, i) => {
         let f = (i + 1) / (stops.length + 1);
         if (st.t) { const tot = t.arrival - t.start; if (tot > 0) f = Math.max(0.05, Math.min(0.95, (st.t - t.start) / tot)); }
-        const p = pt(f), passed = s.frac >= f;
-        box.insertAdjacentHTML('beforeend', `<g transform="translate(${p.x} ${p.y})"><circle r="14" fill="${passed ? 'var(--ic-5)' : 'var(--ic-1)'}" stroke="var(--ink)" stroke-width="3"/>${passed ? '<path d="M-6 0l4 5 8-9" fill="none" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/>' : ''}</g>`);
+        const p = path.getPointAtLength(noseLen(L, f));
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g'); g.setAttribute('class', 'stop'); g.dataset.f = f; g.setAttribute('transform', `translate(${p.x} ${p.y})`);
+        box.appendChild(g);
         label(p.x, p.y - 26, st.nome + (st.t ? ` (${hm(st.t)})` : ''), 'middle');
       });
     }
-    // l'auto: si sposta piano con una transizione lunga
-    const c = pt(s.frac), c2 = pt(Math.min(1, s.frac + 0.01)), ang = Math.atan2(c2.y - c.y, c2.x - c.x) * 180 / Math.PI;
     const car = document.createElementNS('http://www.w3.org/2000/svg', 'g'); car.setAttribute('class', 'car');
-    car.innerHTML = `<g transform="rotate(${ang.toFixed(1)})"><rect x="-30" y="-30" width="60" height="26" rx="10" fill="var(--ic-3)" stroke="var(--ink)" stroke-width="3.5"/><path d="M-18 -30l6-12h22l8 12" fill="var(--ic-4)" stroke="var(--ink)" stroke-width="3.5" stroke-linejoin="round"/><circle cx="-16" cy="-4" r="8" fill="var(--ink)"/><circle cx="16" cy="-4" r="8" fill="var(--ink)"/><circle cx="-16" cy="-4" r="3" fill="var(--ic-6)"/><circle cx="16" cy="-4" r="3" fill="var(--ic-6)"/></g>`;
-    car.style.transform = `translate(${c.x}px, ${c.y}px)`;
+    car.innerHTML = `<g class="car-rot"><rect x="-30" y="-30" width="60" height="26" rx="10" fill="var(--ic-3)" stroke="var(--ink)" stroke-width="3.5"/><path d="M-18 -30l6-12h22l8 12" fill="var(--ic-4)" stroke="var(--ink)" stroke-width="3.5" stroke-linejoin="round"/><circle cx="-16" cy="-4" r="8" fill="var(--ink)"/><circle cx="16" cy="-4" r="8" fill="var(--ink)"/><circle cx="-16" cy="-4" r="3" fill="var(--ic-6)"/><circle cx="16" cy="-4" r="3" fill="var(--ic-6)"/></g>`;
     box.appendChild(car);
+    box._road = {path, L};
+    placeCar(box, s.frac);
+  }
+  /* posizione del muso lungo la strada: da metà auto dopo la partenza fino all'asta della bandierina */
+  const noseLen = (L, f) => CAR_HALF + f * (L - CAR_HALF);
+  /* sposta solo l'auto, la scia colorata e le spunte delle tappe (chiamata ogni secondo) */
+  function placeCar(box, frac){
+    const r = box._road; if (!r) return;
+    const {path, L} = r, nose = noseLen(L, frac), mid = nose - CAR_HALF;
+    const c = path.getPointAtLength(mid), back = path.getPointAtLength(Math.max(0, mid - CAR_HALF)), front = path.getPointAtLength(nose);
+    const ang = Math.atan2(front.y - back.y, front.x - back.x) * 180 / Math.PI;
+    const car = box.querySelector('.car');
+    car.setAttribute('transform', `translate(${c.x.toFixed(1)} ${c.y.toFixed(1)})`);
+    car.firstChild.setAttribute('transform', `rotate(${ang.toFixed(1)})`);
+    box.querySelector('.road-done').setAttribute('stroke-dasharray', `${nose} ${L}`);
+    box.querySelectorAll('.stop').forEach(g => {
+      const passed = frac >= +g.dataset.f; if (g.dataset.passed === String(passed)) return;
+      g.dataset.passed = passed;
+      g.innerHTML = `<circle r="14" fill="${passed ? 'var(--ic-5)' : 'var(--ic-1)'}" stroke="var(--ink)" stroke-width="3"/>${passed ? '<path d="M-6 0l4 5 8-9" fill="none" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/>' : ''}`;
+    });
   }
 
   /* ---------- impostazione ---------- */
@@ -152,22 +172,22 @@ const IV = (() => {
   const save = () => store.set('viaggio', trip);
 
   /* ---------- viaggio in corso ---------- */
-  let timer = 0, lastFrac = -1;
+  let timer = 0;
   function show(){
     clearInterval(timer);
     $('#tripSetup').hidden = !!trip; $('#tripView').hidden = !trip;
     if (!trip) { if (!$('#stopsSetup').children.length) addStopRow(); return; }
     $('#tripRoute').textContent = trip.from || trip.to ? `${trip.from || 'Partenza'} → ${trip.to || 'Arrivo'}` : 'Il nostro viaggio';
     $('#kmBtn').hidden = !(trip.to && findCity(trip.to));
-    update(true); timer = setInterval(update, 10000);
+    update(true); timer = setInterval(update, 1000);
   }
   function update(force){
     if (!trip || $('#tripView').hidden) return;
     const s = state();
+    if (force) drawRoad($('#road'), s, trip, false); else placeCar($('#road'), s.frac);
     $('#tripLeft').textContent = s.paused ? 'In pausa' : fmtLeft(s.left);
     $('#tripEta').textContent = s.paused ? `Riprendiamo quando volete. Arrivo previsto alle ${hm(s.arrival)}` : s.left > 0 ? `Arrivo previsto alle ${hm(s.arrival)}` : `Arrivati alle ${hm(s.arrival)}`;
     $('#pauseBtn').textContent = s.paused ? 'Riprendi' : 'Pausa';
-    if (force || Math.abs(s.frac - lastFrac) > 0.0005) { drawRoad($('#road'), s, trip, false); lastFrac = s.frac; }
     // traguardi: ognuno una volta sola, con una dissolvenza lenta
     const m = [...MILESTONES].reverse().find(x => x.test(s));
     if (m && !s.paused && !trip.shown.includes(m.id)) { trip.shown = MILESTONES.filter(x => x.test(s)).map(x => x.id); save(); celebrate(m.msg); }
@@ -201,7 +221,7 @@ const IV = (() => {
     const box = $('#homeDemo'); if (!box) return;
     if (trip) {
       const s = state(); box.textContent = '';
-      const r = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); r.setAttribute('class', 'road-mini'); r.setAttribute('viewBox', '0 0 1000 260'); r.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+      const r = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); r.setAttribute('class', 'road-mini'); r.setAttribute('viewBox', '0 14 1000 206');
       box.append(r, IV.el('span', {text:s.paused ? 'Viaggio in pausa' : `Mancano ${fmtLeft(s.left)}, arrivo alle ${hm(s.arrival)}`}));
       drawRoad(r, s, trip, true); return;
     }
@@ -209,7 +229,7 @@ const IV = (() => {
     const demo = {start:t0.getTime() - 110 * MIN, arrival:t0.getTime() + 95 * MIN, pausedAt:null, pausedTotal:0, from:'Milano', to:'Roma', stops:[], shown:[]};
     const keep = trip; trip = demo; const s = state(); trip = keep;
     box.textContent = '';
-    const r = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); r.setAttribute('class', 'road-mini'); r.setAttribute('viewBox', '0 0 1000 260'); r.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+    const r = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); r.setAttribute('class', 'road-mini'); r.setAttribute('viewBox', '0 14 1000 206');
     box.append(r, IV.el('span', {}, IV.el('span', {class:'tag', text:'Esempio'}), `Milano → Roma: mancano ${fmtLeft(s.left)}`), IV.el('small', {text:'Tocca per impostare il vostro viaggio'}));
     drawRoad(r, s, demo, true);
   }
